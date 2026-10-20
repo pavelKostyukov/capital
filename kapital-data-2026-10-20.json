@@ -1,0 +1,518 @@
+{
+  "accounts": [
+    {
+      "cash": 0,
+      "kind": "car",
+      "name": "Машина",
+      "note": "держим",
+      "order": 6,
+      "value": 2000000,
+      "id": "acc-car"
+    },
+    {
+      "cash": 0,
+      "kind": "property",
+      "name": "Квартира Трёхгорка",
+      "note": "рыночная оценка",
+      "order": 4,
+      "value": 9000000,
+      "id": "acc-flat"
+    },
+    {
+      "cash": 0,
+      "kind": "iis",
+      "name": "Т-Банк ИИС",
+      "note": "внести сумму",
+      "order": 1,
+      "value": 0,
+      "id": "acc-iis"
+    },
+    {
+      "cash": 0,
+      "kind": "broker",
+      "name": "Инвестпалата",
+      "note": "внести сумму, позиции к разбору",
+      "order": 3,
+      "value": 0,
+      "id": "acc-ip"
+    },
+    {
+      "cash": 0,
+      "kind": "debt",
+      "name": "Ипотека Трёхгорка",
+      "note": "остаток долга, не гасить досрочно",
+      "order": 5,
+      "value": 5000000,
+      "id": "acc-mort"
+    },
+    {
+      "cash": 12427,
+      "kind": "broker",
+      "name": "Т-Банк брокерский",
+      "note": "по renta.life на 20.10.2026",
+      "order": 0,
+      "value": 3200271,
+      "id": "acc-tb"
+    },
+    {
+      "cash": 0,
+      "kind": "broker",
+      "name": "ВТБ Инвестиции",
+      "note": "внести сумму",
+      "order": 2,
+      "value": 0,
+      "id": "acc-vtb"
+    }
+  ],
+  "positions": [
+    {
+      "account": "",
+      "cost": 0,
+      "kind": "share",
+      "name": "АФК Система",
+      "ticker": "AFKS",
+      "value": 0,
+      "verdict": "sell",
+      "id": "p-afks"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 1000000,
+      "kind": "fund",
+      "name": "Акцент 5 (ЗПИФ)",
+      "ticker": "XACCSK",
+      "value": 900000,
+      "verdict": "hold",
+      "id": "p-akc5"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Альфа-Капитал",
+      "ticker": "AKME",
+      "value": 0,
+      "verdict": "watch",
+      "id": "p-akme"
+    },
+    {
+      "account": "",
+      "cost": 0,
+      "kind": "share",
+      "name": "Газпром",
+      "ticker": "GAZP",
+      "value": 0,
+      "verdict": "sell",
+      "id": "p-gazp"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "ГТЛК БО 002",
+      "ticker": "RU000A102VR0",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-gtlk"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "КАМАЗ БО-П12",
+      "ticker": "RU000A109JW0",
+      "value": 0,
+      "verdict": "watch",
+      "id": "p-kamaz"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "fund",
+      "name": "Кредитный поток 2.0",
+      "ticker": "",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-kp2"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Россети Ленэнерго",
+      "ticker": "LSNG",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-lsng"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "ОФЗ 26238",
+      "ticker": "SU26238RMFS4",
+      "value": 0,
+      "verdict": "buy",
+      "id": "p-ofz38"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "О'КЕЙ БО 001",
+      "ticker": "RU000A1009Z8",
+      "value": 0,
+      "verdict": "watch",
+      "id": "p-okey"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Озон Фармацевтика",
+      "ticker": "OZPH",
+      "value": 0,
+      "verdict": "watch",
+      "id": "p-ozph"
+    },
+    {
+      "account": "",
+      "cost": 0,
+      "kind": "share",
+      "name": "Petropavlovsk",
+      "ticker": "POGR",
+      "value": 0,
+      "verdict": "sell",
+      "id": "p-petr"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "РусАгро",
+      "ticker": "RAGR",
+      "value": 0,
+      "verdict": "watch",
+      "id": "p-ragr"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "РусГидро БО",
+      "ticker": "RU000A106ZU6",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-rushyd"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "bond",
+      "name": "РЖД БО 001Р",
+      "ticker": "RU000A106K43",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-rzd"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Сбер Банк",
+      "ticker": "SBER",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-sber"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Сбер Банк преф",
+      "ticker": "SBERP",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-sberp"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "share",
+      "name": "Татнефть",
+      "ticker": "TATN",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-tatn"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "fund",
+      "name": "Дивидендные акции",
+      "ticker": "TDIV@",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-tdiv"
+    },
+    {
+      "account": "acc-tb",
+      "cost": 0,
+      "kind": "fund",
+      "name": "Крупнейшие компании РФ",
+      "ticker": "TMOS@",
+      "value": 0,
+      "verdict": "hold",
+      "id": "p-tmos"
+    },
+    {
+      "account": "",
+      "cost": 0,
+      "kind": "share",
+      "name": "ВТБ",
+      "ticker": "VTBR",
+      "value": 0,
+      "verdict": "sell",
+      "id": "p-vtbr"
+    }
+  ],
+  "payouts": [
+    {
+      "amount": 46,
+      "kind": "coupon",
+      "month": "2026-03",
+      "name": "ГТЛК БО 002",
+      "id": "c-gt-03"
+    },
+    {
+      "amount": 44,
+      "kind": "coupon",
+      "month": "2026-06",
+      "name": "ГТЛК БО 002",
+      "id": "c-gt-06"
+    },
+    {
+      "amount": 41,
+      "kind": "coupon",
+      "month": "2026-09",
+      "name": "ГТЛК БО 002",
+      "id": "c-gt-09"
+    },
+    {
+      "amount": 2044,
+      "kind": "coupon",
+      "month": "2026-03",
+      "name": "КАМАЗ БО-П12",
+      "id": "c-km-03"
+    },
+    {
+      "amount": 1465,
+      "kind": "coupon",
+      "month": "2026-06",
+      "name": "КАМАЗ БО-П12",
+      "id": "c-km-06"
+    },
+    {
+      "amount": 39,
+      "kind": "coupon",
+      "month": "2026-09",
+      "name": "КАМАЗ БО-П12",
+      "id": "c-km-09"
+    },
+    {
+      "amount": 9487,
+      "kind": "coupon",
+      "month": "2026-06",
+      "name": "ОФЗ 26238",
+      "id": "c-ofz-06"
+    },
+    {
+      "amount": 623,
+      "kind": "coupon",
+      "month": "2026-01",
+      "name": "О'КЕЙ БО 001",
+      "id": "c-ok-01"
+    },
+    {
+      "amount": 623,
+      "kind": "coupon",
+      "month": "2026-04",
+      "name": "О'КЕЙ БО 001",
+      "id": "c-ok-04"
+    },
+    {
+      "amount": 623,
+      "kind": "coupon",
+      "month": "2026-07",
+      "name": "О'КЕЙ БО 001",
+      "id": "c-ok-07"
+    },
+    {
+      "amount": 623,
+      "kind": "coupon",
+      "month": "2026-10",
+      "name": "О'КЕЙ БО 001",
+      "id": "c-ok-10"
+    },
+    {
+      "amount": 800,
+      "kind": "coupon",
+      "month": "2026-01",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-01"
+    },
+    {
+      "amount": 2300,
+      "kind": "coupon",
+      "month": "2026-02",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-02"
+    },
+    {
+      "amount": 4100,
+      "kind": "coupon",
+      "month": "2026-03",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-03"
+    },
+    {
+      "amount": 1100,
+      "kind": "coupon",
+      "month": "2026-04",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-04"
+    },
+    {
+      "amount": 4500,
+      "kind": "coupon",
+      "month": "2026-05",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-05"
+    },
+    {
+      "amount": 550,
+      "kind": "coupon",
+      "month": "2026-06",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-06"
+    },
+    {
+      "amount": 5700,
+      "kind": "coupon",
+      "month": "2026-07",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-07"
+    },
+    {
+      "amount": 1100,
+      "kind": "coupon",
+      "month": "2026-08",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-08"
+    },
+    {
+      "amount": 2200,
+      "kind": "coupon",
+      "month": "2026-09",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-09"
+    },
+    {
+      "amount": 170,
+      "kind": "coupon",
+      "month": "2026-10",
+      "name": "Прочие облигации (оценка)",
+      "id": "c-oth-10"
+    },
+    {
+      "amount": 1715,
+      "kind": "coupon",
+      "month": "2026-04",
+      "name": "РусГидро БО",
+      "id": "c-rh-04"
+    },
+    {
+      "amount": 1616,
+      "kind": "coupon",
+      "month": "2026-07",
+      "name": "РусГидро БО",
+      "id": "c-rh-07"
+    },
+    {
+      "amount": 1478,
+      "kind": "coupon",
+      "month": "2026-02",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-02"
+    },
+    {
+      "amount": 682,
+      "kind": "coupon",
+      "month": "2026-03",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-03"
+    },
+    {
+      "amount": 596,
+      "kind": "coupon",
+      "month": "2026-04",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-04"
+    },
+    {
+      "amount": 500,
+      "kind": "coupon",
+      "month": "2026-05",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-05"
+    },
+    {
+      "amount": 447,
+      "kind": "coupon",
+      "month": "2026-06",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-06"
+    },
+    {
+      "amount": 79,
+      "kind": "coupon",
+      "month": "2026-07",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-07"
+    },
+    {
+      "amount": 78,
+      "kind": "coupon",
+      "month": "2026-08",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-08"
+    },
+    {
+      "amount": 53,
+      "kind": "coupon",
+      "month": "2026-09",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-09"
+    },
+    {
+      "amount": 26,
+      "kind": "coupon",
+      "month": "2026-10",
+      "name": "РЖД БО 001Р",
+      "id": "c-rzd-10"
+    }
+  ],
+  "months": [
+    {
+      "expense": 90000,
+      "income": 305000,
+      "note": "оценка, уточнить по бухгалтерии",
+      "id": "2026-10"
+    }
+  ],
+  "settings": {
+    "base": "liquid",
+    "contribution": 200000,
+    "rate": 17
+  }
+}
