@@ -1,0 +1,481 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Капитал Павла</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: sticky top bar with net worth, tab strip, one working panel per tab; ledger-style tables */
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --surface2:#F6F8FA; --line:#DCE2E8;
+  --ink:#16222E; --muted:#5E6B78; --faint:#8D99A5;
+  --accent:#1D5C8F; --accent-soft:#E2ECF5; --brass:#B07A1E;
+  --up:#1E8A52; --up-soft:#E3F3EA; --down:#C23B32; --down-soft:#F8E6E4; --warn:#A86A0B; --warn-soft:#FBF0DC;
+  --display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F151B; --surface:#17202A; --surface2:#1D2833; --line:#2A3744;
+  --ink:#E6ECF1; --muted:#9AA8B5; --faint:#6F7E8C;
+  --accent:#6FA8DA; --accent-soft:#1E3346; --brass:#D9A24A;
+  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --surface:#17202A; --surface2:#1D2833; --line:#2A3744;
+  --ink:#E6ECF1; --muted:#9AA8B5; --faint:#6F7E8C;
+  --accent:#6FA8DA; --accent-soft:#1E3346; --brass:#D9A24A;
+  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
+.brand{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:-.01em;margin-right:auto}
+.brand span{color:var(--accent)}
+.hstat{display:flex;flex-direction:column;align-items:flex-end}
+.hstat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.hstat b{font-size:18px;font-weight:600}
+nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+nav button{border:0;background:transparent;color:var(--muted);font:500 14px var(--body);padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-block:20px 48px;display:grid;gap:18px}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:var(--r);padding:10px 14px;font-size:13px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:15px;font-weight:600;margin:0 0 12px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.panel h2 .sub{font-weight:400;font-size:13px;color:var(--muted)}
+.kpi small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.kpi .v{font-family:var(--display);font-weight:500;font-size:24px;letter-spacing:-.02em}
+.kpi .n{font-size:13px;color:var(--muted);margin-top:4px}
+.up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--muted)}
+.two{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.goal{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.goal:last-child{border-bottom:0}
+.goal .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.goal .name{font-weight:600}
+.bar{height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar i.brass{background:var(--brass)}
+.scen{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+label.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+input,select{font:inherit;color:var(--ink);background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0}
+input[type=number]{text-align:right}
+.scen input{width:130px}
+.tablewrap{overflow-x:auto;margin:0 -4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:500;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num,th.num{text-align:right;white-space:nowrap}
+td input,td select{width:100%;padding:5px 7px;background:transparent;border-color:transparent}
+td input:hover,td select:hover{border-color:var(--line)}
+td input:focus,td select:focus{background:var(--surface2);border-color:var(--accent)}
+tfoot td{font-weight:600;border-bottom:0;padding-top:10px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 13px var(--body);padding:7px 12px;border-radius:7px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--faint);padding:4px 8px}
+.btn.ghost:hover{color:var(--down)}
+.btn.ghost.armed{color:var(--down);background:var(--down-soft)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.pill.hold{background:var(--accent-soft);color:var(--accent)}
+.pill.sell{background:var(--down-soft);color:var(--down)}
+.pill.buy{background:var(--up-soft);color:var(--up)}
+.pill.watch{background:var(--warn-soft);color:var(--warn)}
+td.v-cell select{font-weight:500}
+.alloc{display:grid;gap:8px}
+.alloc .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:13px}
+.alloc .bar{grid-column:1/-1;height:6px}
+svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--faint);margin-top:10px;max-width:70ch}
+.addform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;padding-top:12px;margin-top:12px;border-top:1px dashed var(--line)}
+.addform input,.addform select{width:auto}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.seg{display:inline-flex;background:var(--surface2);border-radius:99px;padding:3px}
+.seg button{border:0;background:transparent;font:500 13px var(--body);color:var(--muted);padding:4px 12px;border-radius:99px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">Капитал <span>→ 40 млн</span></div>
+      <div class="hstat"><small>Чистый капитал</small><b id="h-nw">—</b></div>
+      <div class="hstat"><small>Ликвидно</small><b id="h-liq">—</b></div>
+      <div class="hstat"><small>Пассив / мес</small><b id="h-pass">—</b></div>
+    </div>
+    <nav role="tablist" id="tabs">
+      <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
+      <button role="tab" data-tab="accounts" aria-selected="false">Счета и имущество</button>
+      <button role="tab" data-tab="positions" aria-selected="false">Бумаги</button>
+      <button role="tab" data-tab="payouts" aria-selected="false">Выплаты</button>
+      <button role="tab" data-tab="budget" aria-selected="false">Бюджет</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap"><main id="main"></main></div>
+
+<script>
+(function(){
+"use strict";
+const KIND_LABEL={broker:"Брокерский",iis:"ИИС",cash:"Деньги / вклад",property:"Недвижимость",car:"Автомобиль",debt:"Долг / ипотека",foreign:"Зарубежный счёт"};
+const LIQUID=["broker","iis","cash","foreign"];
+const VERDICT={hold:"Держать",buy:"Докупать",sell:"Продать",watch:"Решить"};
+const PKIND={share:"Акция",bond:"Облигация",fund:"Фонд / ЗПИФ",other:"Другое"};
+const PAYKIND={coupon:"Купон",dividend:"Дивиденд",rent:"Аренда / ЗПИФ",other:"Другое"};
+const MONTHS=["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+
+// Example state shown only until the store answers / when the store is unavailable.
+const LADDER=[5e6,8e6,12e6,16e6,20e6,30e6,40e6];
+const state={settings:{contribution:200000,rate:17,base:"liquid"},accounts:[],positions:[],payouts:[],months:[],loaded:false};
+let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
+
+// ---------- formatting ----------
+const nf=new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0});
+const rub=n=>(n<0?"−":"")+nf.format(Math.abs(Math.round(n||0)))+" ₽";
+const mln=n=>{const a=Math.abs(n||0);return (n<0?"−":"")+(a>=1e6?(a/1e6).toLocaleString("ru-RU",{maximumFractionDigits:a>=1e7?1:2})+" млн ₽":nf.format(Math.round(a))+" ₽")};
+const k=n=>{const a=Math.abs(n||0);return a>=1000?(a/1000).toLocaleString("ru-RU",{maximumFractionDigits:a>=1e4?0:1})+"к":nf.format(Math.round(a))};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=v=>{const x=parseFloat(String(v).replace(/\s/g,"").replace(",","."));return isFinite(x)?x:0};
+
+// ---------- derived ----------
+function totals(){
+  let assets=0,debts=0,liquid=0,car=0;
+  for(const a of state.accounts){
+    const v=num(a.value)+num(a.cash);
+    if(a.kind==="debt"){debts+=Math.abs(num(a.value));continue}
+    assets+=v; if(LIQUID.includes(a.kind)) liquid+=v; if(a.kind==="car") car+=v;
+  }
+  const nw=assets-debts;
+  const now=new Date(), from=new Date(now.getFullYear(),now.getMonth()-11,1);
+  const last12=state.payouts.filter(p=>{const d=new Date(p.month+"-01");return d>=from}).reduce((s,p)=>s+num(p.amount),0);
+  const goalBase=state.settings.base==="all"?nw-car:liquid;
+  return {assets,debts,liquid,car,nw,goalBase,passive:last12/12};
+}
+function project(start,liquid,monthly,ratePct,targets){
+  // liquid part compounds monthly, rest (property equity) stays flat; contributions go to liquid
+  const r=ratePct/100/12, fixed=start-liquid; let L=liquid; const pts=[{m:0,v:start}]; const hit={};
+  for(let m=1;m<=12*20;m++){L=L*(1+r)+monthly; const v=fixed+L; if(m%3===0) pts.push({m,v});
+    for(const t of targets) if(hit[t]==null && v>=t) hit[t]=m;
+    if(targets.every(t=>hit[t]!=null) && m>=36 && m%12===0 && v>Math.max(...targets)*1.08) break;}
+  return {pts,hit};
+}
+const monthsLabel=m=>{if(m==null)return "дальше 20 лет";const d=new Date();d.setMonth(d.getMonth()+m);const y=Math.floor(m/12),mm=m%12;
+  return d.toLocaleDateString("ru-RU",{month:"short",year:"numeric"})+" · "+(y?y+" г. ":"")+(mm?mm+" мес":"")};
+
+// ---------- storage ----------
+const LS="kapital-local-v1";
+function saveLocal(){if(persistOK)return;try{localStorage.setItem(LS,JSON.stringify({settings:state.settings,accounts:state.accounts,positions:state.positions,payouts:state.payouts,months:state.months}))}catch(e){}}
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){Object.assign(state,s);return true}}catch(e){}return false}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const timers={};
+function patch(coll,id,fields){
+  const list=state[coll]; const it=list.find(x=>x.id===id); if(!it) return; Object.assign(it,fields);
+  if(db){clearTimeout(timers[coll+id]);timers[coll+id]=setTimeout(()=>{delete timers[coll+id];const {id:_,...body}=it;db.collection(coll).doc(id).set(body).catch(err)},350)}
+  else saveLocal();
+  renderHeader(); if(!isEditing()) render();
+}
+function add(coll,body){
+  const id=uid(); state[coll].push({id,...body});
+  if(db) db.collection(coll).doc(id).set(body).catch(err); else saveLocal();
+  render();
+}
+function remove(coll,id){
+  state[coll]=state[coll].filter(x=>x.id!==id);
+  if(db) db.collection(coll).doc(id).delete().catch(err); else saveLocal();
+  render();
+}
+function saveSettings(f){Object.assign(state.settings,f);
+  if(db){clearTimeout(timers.s);timers.s=setTimeout(()=>db.doc("settings/main").set(state.settings).catch(err),400)} else saveLocal();
+  renderHeader(); renderOverviewLive();}
+function err(e){const m=document.getElementById("banner");if(m){m.hidden=false;m.textContent=e&&e.code==="quota_exceeded"?"Хранилище заполнено: удалите старые выплаты или месяцы.":"Не удалось сохранить изменение. Проверьте подключение и повторите."}}
+
+// ---------- rendering ----------
+const main=document.getElementById("main");
+function isEditing(){const a=document.activeElement;return a&&main.contains(a)&&(a.tagName==="INPUT"||a.tagName==="SELECT")}
+main.addEventListener("focusout",()=>setTimeout(()=>{if(pendingRender&&!isEditing()){pendingRender=false;render()}},0));
+function schedule(){if(isEditing()){pendingRender=true;renderHeader()}else render()}
+
+function renderHeader(){const t=totals();
+  document.getElementById("h-nw").textContent=mln(t.nw);
+  document.getElementById("h-liq").textContent=mln(t.liquid);
+  document.getElementById("h-pass").textContent=rub(t.passive);}
+
+function render(){
+  renderHeader();
+  const banner=`<div class="banner" id="banner" hidden></div>`+(persistOK||!state.loaded?"":`<div class="banner" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <span style="margin-right:auto">Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
+    <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
+  if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
+  const views={overview,accounts,positions,payouts,budget};
+  main.innerHTML=banner+views[tab]();
+  bind();
+  if(tab==="overview") renderOverviewLive();
+}
+
+// ----- Overview -----
+function overview(){
+  const t=totals(), s=state.settings;
+  const lastMonths=[...state.months].sort((a,b)=>a.id<b.id?1:-1).slice(0,6);
+  const avgSave=lastMonths.length?lastMonths.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/lastMonths.length:null;
+  const avgInc=lastMonths.length?lastMonths.reduce((x,m)=>x+num(m.income),0)/lastMonths.length:0;
+  const sellCnt=state.positions.filter(p=>p.verdict==="sell"), sellSum=sellCnt.reduce((x,p)=>x+num(p.value),0);
+  const pl=state.positions.reduce((x,p)=>x+num(p.value)-num(p.cost),0);
+  const byAcc=state.accounts.filter(a=>a.kind!=="debt").map(a=>({n:a.name,k:a.kind,v:num(a.value)+num(a.cash)})).sort((a,b)=>b.v-a.v);
+  const maxA=Math.max(1,...byAcc.map(a=>a.v));
+  return `
+  <section class="grid kpis">
+    <div class="panel kpi"><small>Чистый капитал</small><div class="v">${mln(t.nw)}</div><div class="n">активы ${mln(t.assets)} · долги ${mln(t.debts)}</div></div>
+    <div class="panel kpi"><small>Ликвидный портфель</small><div class="v">${mln(t.liquid)}</div><div class="n">брокеры, ИИС, деньги</div></div>
+    <div class="panel kpi"><small>Пассивный доход</small><div class="v">${rub(t.passive)}</div><div class="n">в среднем за 12 мес по выплатам</div></div>
+    <div class="panel kpi"><small>Норма сбережений</small><div class="v">${avgSave==null?"—":Math.round(avgSave/Math.max(1,avgInc)*100)+"%"}</div><div class="n">${avgSave==null?"заполните «Бюджет»":"откладываю ~"+rub(avgSave)+" / мес"}</div></div>
+  </section>
+  <section class="grid two">
+    <div class="panel">
+      <h2>Путь к 40 млн <span class="sub">считаю от: ${s.base==="all"?"всего капитала без машины":"ликвидного портфеля"} — ${mln(t.goalBase)}</span></h2>
+      <div class="scen">
+        <label class="f">Пополнение в месяц, ₽<input id="s-contrib" type="number" step="10000" value="${s.contribution}"></label>
+        <label class="f">Доходность, % годовых<input id="s-rate" type="number" step="0.5" value="${s.rate}"></label>
+        <div class="f" style="display:grid;gap:4px;font-size:12px;color:var(--muted)">Считать от<span class="seg" role="group" aria-label="База цели"><button data-base="liquid" aria-pressed="${s.base!=="all"}">Портфель</button><button data-base="all" aria-pressed="${s.base==="all"}">Весь капитал</button></span></div>
+        ${avgSave!=null?`<button class="btn" id="s-usebudget">Взять из бюджета: ${k(avgSave)}</button>`:""}
+      </div>
+      <div id="goals"></div>
+      <div id="proj"></div>
+      <p class="note">Полоска каждого этапа показывает путь от предыдущего этапа. Прогноз: портфель растёт по сложному проценту с ежемесячным пополнением; в режиме «Весь капитал» квартира учитывается по текущей оценке без роста. Это ориентир, а не обещание доходности.</p>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="panel">
+        <h2>Где лежат деньги</h2>
+        ${byAcc.length?`<div class="alloc">${byAcc.map(a=>`<div class="row"><span>${esc(a.n)} <span class="muted">· ${KIND_LABEL[a.k]||""}</span></span><b>${mln(a.v)}</b><div class="bar"><i style="width:${(a.v/maxA*100).toFixed(1)}%" class="${LIQUID.includes(a.k)?"":"brass"}"></i></div></div>`).join("")}</div>`:`<div class="empty">Добавьте счета во вкладке «Счета и имущество»</div>`}
+        <div class="legend"><span><i style="background:var(--accent)"></i>ликвидное</span><span><i style="background:var(--brass)"></i>имущество</span></div>
+      </div>
+      <div class="panel">
+        <h2>Бумаги</h2>
+        <div class="alloc">
+          <div class="row"><span>Позиций в учёте</span><b>${state.positions.length}</b></div>
+          <div class="row"><span>Результат по открытым</span><b class="${pl>=0?"up":"down"}">${pl>=0?"+":""}${rub(pl)}</b></div>
+          <div class="row"><span>К продаже (налоговая чистка)</span><b class="down">${sellCnt.length} · ${rub(sellSum)}</b></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+function renderOverviewLive(){
+  const g=document.getElementById("goals"); if(!g) return;
+  const t=totals(), s=state.settings;
+  const goals=LADDER.map(v=>({n:(v/1e6)+" млн",v}));
+  const pr=project(t.goalBase,t.liquid,num(s.contribution),num(s.rate),LADDER);
+  const nextIdx=LADDER.findIndex(v=>t.goalBase<v);
+  g.innerHTML=goals.map((x,i)=>{const done=t.goalBase>=x.v, isNext=i===nextIdx;const prev=i?LADDER[i-1]:0;
+    const p=done?100:Math.max(0,Math.min(100,(t.goalBase-prev)/(x.v-prev)*100));
+    return `<div class="goal" ${isNext?'style="background:var(--accent-soft);margin:0 -10px;padding:10px;border-radius:8px"':""}>
+    <div class="row"><span class="name">${done?"✓ ":""}${x.n}${isNext?' <span class="pill hold">следующий этап</span>':""}</span>
+    <span class="muted">${done?"пройдено":"осталось "+mln(x.v-t.goalBase)+" · "+monthsLabel(pr.hit[x.v])}</span></div>
+    <div class="bar"><i style="width:${p}%" ${done?'class="brass"':""}></i></div></div>`}).join("");
+  document.getElementById("proj").innerHTML=projChart(pr.pts,goals.filter(x=>x.v>t.goalBase||x.v===40e6));
+}
+function projChart(pts,goals){
+  const W=640,H=230,pl=56,pr=12,pt=12,pb=26;
+  const maxM=pts[pts.length-1].m, maxV=Math.max(goals[goals.length-1].v*1.08,pts[pts.length-1].v);
+  const x=m=>pl+(W-pl-pr)*m/maxM, y=v=>pt+(H-pt-pb)*(1-v/maxV);
+  const step=maxV>8e7?2e7:maxV>3e7?1e7:5e6; let grid="";
+  for(let v=0;v<=maxV;v+=step) grid+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end">${v/1e6} млн</text>`;
+  let xt=""; const ys=Math.ceil(maxM/12);
+  for(let yr=0;yr<=ys;yr+=Math.max(1,Math.round(ys/6))){const m=yr*12;if(m>maxM)break;xt+=`<text x="${x(m)}" y="${H-6}" text-anchor="middle">${new Date().getFullYear()+yr}</text>`}
+  const gl=goals.map(gg=>`<line x1="${pl}" x2="${W-pr}" y1="${y(gg.v)}" y2="${y(gg.v)}" stroke="var(--brass)" stroke-dasharray="4 4"/><text x="${W-pr}" y="${y(gg.v)-5}" text-anchor="end" style="fill:var(--brass)">${gg.n}</text>`).join("");
+  const line=pts.map((p,i)=>(i?"L":"M")+x(p.m).toFixed(1)+" "+y(p.v).toFixed(1)).join(" ");
+  const area=line+` L${x(maxM)} ${y(0)} L${x(0)} ${y(0)} Z`;
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block;margin-top:10px" role="img" aria-label="Прогноз капитала">
+    ${grid}${xt}<path d="${area}" fill="var(--accent-soft)"/>${gl}<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="${x(0)}" cy="${y(pts[0].v)}" r="4" fill="var(--accent)"/></svg></div>`;
+}
+
+// ----- Accounts -----
+function accounts(){
+  const rows=[...state.accounts].sort((a,b)=>(a.order||0)-(b.order||0));
+  const t=totals();
+  return `<div class="panel"><h2>Счета, имущество и долги <span class="sub">обновляйте суммы раз в неделю или месяц из приложений брокеров</span></h2>
+  ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Название</th><th>Тип</th><th class="num">Стоимость бумаг / оценка, ₽</th><th class="num">Свободные деньги, ₽</th><th class="num">Итого</th><th>Заметка</th><th></th></tr></thead><tbody>
+  ${rows.map(a=>`<tr data-coll="accounts" data-id="${a.id}">
+    <td><input data-f="name" value="${esc(a.name)}" aria-label="Название"></td>
+    <td><select data-f="kind" aria-label="Тип">${Object.entries(KIND_LABEL).map(([v,l])=>`<option value="${v}" ${a.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
+    <td class="num"><input data-f="value" type="number" step="1000" value="${num(a.value)}" aria-label="Стоимость"></td>
+    <td class="num">${a.kind==="debt"||a.kind==="property"||a.kind==="car"?`<span class="muted">—</span>`:`<input data-f="cash" type="number" step="100" value="${num(a.cash)}" aria-label="Деньги">`}</td>
+    <td class="num ${a.kind==="debt"?"down":""}"><b>${a.kind==="debt"?"−":""}${rub(Math.abs(num(a.value)+num(a.cash)))}</b></td>
+    <td><input data-f="note" value="${esc(a.note)}" aria-label="Заметка"></td>
+    <td><button class="btn ghost" data-del="accounts" data-id="${a.id}" title="Удалить">✕</button></td></tr>`).join("")}
+  </tbody><tfoot><tr><td colspan="4">Чистый капитал</td><td class="num">${rub(t.nw)}</td><td colspan="2" class="muted">ликвидно ${rub(t.liquid)}</td></tr></tfoot></table></div>`:`<div class="empty">Счетов пока нет. Добавьте первый: брокерский счёт, ИИС или вклад.</div>`}
+  <div class="toolbar">${Object.entries(KIND_LABEL).map(([v,l])=>`<button class="btn" data-addacc="${v}">+ ${l}</button>`).join("")}</div>
+  <p class="note">Ипотеку записывайте как «Долг / ипотека» с остатком долга: он вычтется из чистого капитала. Машина в цели не учитывается, но видна в капитале.</p></div>`;
+}
+
+// ----- Positions -----
+let posFilter="all";
+function positions(){
+  const accs=state.accounts.filter(a=>LIQUID.includes(a.kind));
+  let rows=[...state.positions];
+  if(posFilter!=="all") rows=rows.filter(p=>p.verdict===posFilter);
+  rows.sort((a,b)=>num(b.value)-num(a.value));
+  const tv=rows.reduce((s,p)=>s+num(p.value),0), tc=rows.reduce((s,p)=>s+num(p.cost),0);
+  const accName=id=>(state.accounts.find(a=>a.id===id)||{}).name||"—";
+  return `<div class="panel"><h2>Бумаги во всех счетах <span class="sub">текущая стоимость и сколько вложено берите из приложения брокера</span></h2>
+  <div class="seg" role="group" aria-label="Фильтр">${[["all","Все"],["hold","Держать"],["buy","Докупать"],["sell","Продать"],["watch","Решить"]].map(([v,l])=>`<button data-pf="${v}" aria-pressed="${posFilter===v}">${l}</button>`).join("")}</div>
+  ${rows.length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Тикер</th><th>Вид</th><th>Счёт</th><th class="num">Вложено, ₽</th><th class="num">Стоит сейчас, ₽</th><th class="num">Результат</th><th>Решение</th><th></th></tr></thead><tbody>
+  ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;return `<tr data-coll="positions" data-id="${p.id}">
+    <td style="min-width:170px"><input data-f="name" value="${esc(p.name)}" aria-label="Бумага"></td>
+    <td style="min-width:90px"><input data-f="ticker" value="${esc(p.ticker)}" aria-label="Тикер"></td>
+    <td><select data-f="kind" aria-label="Вид">${Object.entries(PKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
+    <td><select data-f="account" aria-label="Счёт"><option value="">—</option>${accs.map(a=>`<option value="${a.id}" ${p.account===a.id?"selected":""}>${esc(a.name)}</option>`).join("")}</select></td>
+    <td class="num" style="min-width:110px"><input data-f="cost" type="number" step="100" value="${num(p.cost)}" aria-label="Вложено"></td>
+    <td class="num" style="min-width:110px"><input data-f="value" type="number" step="100" value="${num(p.value)}" aria-label="Стоимость"></td>
+    <td class="num ${r>=0?"up":"down"}">${num(p.cost)||num(p.value)?`${r>=0?"+":""}${rub(r)}<br><small>${pc>=0?"+":""}${pc.toFixed(1)}%</small>`:"—"}</td>
+    <td class="v-cell"><select data-f="verdict" aria-label="Решение">${Object.entries(VERDICT).map(([v,l])=>`<option value="${v}" ${p.verdict===v?"selected":""}>${l}</option>`).join("")}</select></td>
+    <td><button class="btn ghost" data-del="positions" data-id="${p.id}" title="Удалить">✕</button></td></tr>`}).join("")}
+  </tbody><tfoot><tr><td colspan="4">Итого ${posFilter==="all"?"":"("+VERDICT[posFilter]+")"}</td><td class="num">${rub(tc)}</td><td class="num">${rub(tv)}</td><td class="num ${tv-tc>=0?"up":"down"}">${tv-tc>=0?"+":""}${rub(tv-tc)}</td><td colspan="2"></td></tr></tfoot></table></div>`:`<div class="empty">Здесь появятся ваши бумаги. Добавьте первую кнопкой ниже.</div>`}
+  <div class="toolbar"><button class="btn primary" id="addpos">+ Добавить бумагу</button>
+  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки на «Обзоре».</span></div></div>`;
+}
+
+// ----- Payouts -----
+function payouts(){
+  const yr=payYear, list=state.payouts.filter(p=>String(p.month).startsWith(yr+"-"));
+  const names=[...new Set(list.map(p=>p.name))].sort();
+  const cell={}; const mt=Array(12).fill(0), mc=Array(12).fill(0), md=Array(12).fill(0), mr=Array(12).fill(0);
+  for(const p of list){const m=parseInt(p.month.slice(5),10)-1; const key=p.name+"|"+m; cell[key]=(cell[key]||0)+num(p.amount); mt[m]+=num(p.amount);
+    if(p.kind==="coupon") mc[m]+=num(p.amount); else if(p.kind==="dividend") md[m]+=num(p.amount); else mr[m]+=num(p.amount);}
+  const total=mt.reduce((a,b)=>a+b,0), cur=new Date();
+  const years=[...new Set(state.payouts.map(p=>+String(p.month).slice(0,4)).concat([cur.getFullYear()]))].sort();
+  const sums={coupon:0,dividend:0,rent:0,other:0}; list.forEach(p=>sums[p.kind in sums?p.kind:"other"]+=num(p.amount));
+  return `<div class="grid kpis">
+    <div class="panel kpi"><small>Выплаты за ${yr}</small><div class="v">${rub(total)}</div><div class="n">в среднем ${rub(total/12)} / мес</div></div>
+    <div class="panel kpi"><small>Купоны</small><div class="v">${rub(sums.coupon)}</div></div>
+    <div class="panel kpi"><small>Дивиденды</small><div class="v">${rub(sums.dividend)}</div></div>
+    <div class="panel kpi"><small>Аренда / ЗПИФ</small><div class="v">${rub(sums.rent+sums.other)}</div></div>
+  </div>
+  <div class="panel"><h2>Календарь выплат <span class="seg" role="group" aria-label="Год">${years.map(y=>`<button data-yr="${y}" aria-pressed="${y===yr}">${y}</button>`).join("")}</span></h2>
+  ${barChart(mc,md,mr)}
+  ${names.length?`<div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Источник</th>${MONTHS.map((m,i)=>`<th class="num" ${yr===cur.getFullYear()&&i===cur.getMonth()?'style="color:var(--accent)"':""}>${m}</th>`).join("")}<th class="num">Итого</th></tr></thead><tbody>
+  ${names.map(n=>`<tr><td>${esc(n)}</td>${MONTHS.map((_,i)=>`<td class="num">${cell[n+"|"+i]?k(cell[n+"|"+i]):`<span class="muted">·</span>`}</td>`).join("")}<td class="num"><b>${rub(MONTHS.reduce((s,_,i)=>s+(cell[n+"|"+i]||0),0))}</b></td></tr>`).join("")}
+  </tbody><tfoot><tr><td>Итого за месяц</td>${mt.map(v=>`<td class="num">${v?k(v):"—"}</td>`).join("")}<td class="num">${rub(total)}</td></tr></tfoot></table></div>`:`<div class="empty">За ${yr} выплат пока нет. Внесите купон или дивиденд ниже.</div>`}
+  <form class="addform" id="payform">
+    <label class="f">Месяц<input id="p-month" type="month" value="${cur.toISOString().slice(0,7)}" required></label>
+    <label class="f">Источник<input id="p-name" list="p-names" placeholder="ОФЗ 26238" required></label>
+    <datalist id="p-names">${[...new Set(state.payouts.map(p=>p.name).concat(state.positions.map(p=>p.name)))].map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+    <label class="f">Вид<select id="p-kind">${Object.entries(PAYKIND).map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select></label>
+    <label class="f">Сумма, ₽<input id="p-amount" type="number" step="1" required style="width:110px"></label>
+    <button class="btn primary" type="submit">Добавить выплату</button>
+  </form>
+  ${list.length?`<details style="margin-top:14px"><summary class="muted" style="cursor:pointer">Все записи за ${yr} (${list.length}) — исправить или удалить</summary>
+  <div class="tablewrap"><table><thead><tr><th>Месяц</th><th>Источник</th><th>Вид</th><th class="num">Сумма, ₽</th><th></th></tr></thead><tbody>
+  ${[...list].sort((a,b)=>a.month<b.month?-1:1).map(p=>`<tr data-coll="payouts" data-id="${p.id}"><td><input data-f="month" type="month" value="${p.month}"></td><td><input data-f="name" value="${esc(p.name)}"></td>
+  <td><select data-f="kind">${Object.entries(PAYKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
+  <td class="num"><input data-f="amount" type="number" value="${num(p.amount)}"></td><td><button class="btn ghost" data-del="payouts" data-id="${p.id}">✕</button></td></tr>`).join("")}
+  </tbody></table></div></details>`:""}
+  </div>`;
+}
+function barChart(c,d,r){
+  const W=640,H=170,pl=40,pb=22,pt=10, max=Math.max(1000,...c.map((v,i)=>v+d[i]+r[i]));
+  const bw=(W-pl-10)/12, y=v=>(H-pb-pt)*v/max;
+  const raw=max/4, p10=Math.pow(10,Math.floor(Math.log10(raw))), step=[1,2,5,10].map(m=>m*p10).find(s=>s>=raw);
+  let g=""; for(let v=0;v<=max;v+=step) g+=`<line x1="${pl}" x2="${W-10}" y1="${H-pb-y(v)}" y2="${H-pb-y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${H-pb-y(v)+4}" text-anchor="end">${k(v)}</text>`;
+  const bars=c.map((cv,i)=>{const x=pl+i*bw+bw*.18,w=bw*.64;let yb=H-pb,s="";
+    for(const [v,col] of [[cv,"var(--accent)"],[d[i],"var(--brass)"],[r[i],"var(--up)"]]){if(!v)continue;const h=y(v);yb-=h;s+=`<rect x="${x}" y="${yb}" width="${w}" height="${h}" fill="${col}" rx="2"/>`}
+    return s+`<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${MONTHS[i]}</text>`}).join("");
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block" role="img" aria-label="Выплаты по месяцам">${g}${bars}</svg></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>купоны</span><span><i style="background:var(--brass)"></i>дивиденды</span><span><i style="background:var(--up)"></i>аренда / ЗПИФ</span></div>`;
+}
+
+// ----- Budget -----
+function budget(){
+  const rows=[...state.months].sort((a,b)=>a.id<b.id?1:-1);
+  const n=rows.length, inc=rows.reduce((s,m)=>s+num(m.income),0), exp=rows.reduce((s,m)=>s+num(m.expense),0);
+  const cur=new Date().toISOString().slice(0,7), has=state.months.some(m=>m.id===cur);
+  return `<div class="grid kpis">
+    <div class="panel kpi"><small>Средний доход</small><div class="v">${n?rub(inc/n):"—"}</div><div class="n">зарплата + подработки, на руки</div></div>
+    <div class="panel kpi"><small>Средние расходы</small><div class="v">${n?rub(exp/n):"—"}</div></div>
+    <div class="panel kpi"><small>Откладываю</small><div class="v ${inc-exp>=0?"up":"down"}">${n?rub((inc-exp)/n):"—"}</div><div class="n">${n?Math.round((inc-exp)/Math.max(1,inc)*100)+"% дохода":""}</div></div>
+  </div>
+  <div class="panel"><h2>Доходы и расходы по месяцам <span class="sub">итоги месяца из вашей бухгалтерии</span></h2>
+  ${n?`<div class="tablewrap"><table><thead><tr><th>Месяц</th><th class="num">Доход, ₽</th><th class="num">Расход, ₽</th><th class="num">Отложено</th><th class="num">Норма</th><th>Заметка</th><th></th></tr></thead><tbody>
+  ${rows.map(m=>{const sv=num(m.income)-num(m.expense);return `<tr data-coll="months" data-id="${m.id}"><td>${new Date(m.id+"-01").toLocaleDateString("ru-RU",{month:"long",year:"numeric"})}</td>
+  <td class="num"><input data-f="income" type="number" step="1000" value="${num(m.income)}"></td>
+  <td class="num"><input data-f="expense" type="number" step="1000" value="${num(m.expense)}"></td>
+  <td class="num ${sv>=0?"up":"down"}">${rub(sv)}</td><td class="num">${num(m.income)?Math.round(sv/num(m.income)*100)+"%":"—"}</td>
+  <td><input data-f="note" value="${esc(m.note)}"></td><td><button class="btn ghost" data-del="months" data-id="${m.id}">✕</button></td></tr>`}).join("")}
+  </tbody></table></div>`:`<div class="empty">Внесите первый месяц: сколько пришло и сколько ушло.</div>`}
+  <form class="addform" id="monthform"><label class="f">Месяц<input id="m-id" type="month" value="${cur}" required></label>
+  <label class="f">Доход, ₽<input id="m-inc" type="number" step="1000" value="305000" style="width:120px"></label>
+  <label class="f">Расход, ₽<input id="m-exp" type="number" step="1000" style="width:120px" placeholder="90000"></label>
+  <button class="btn primary" type="submit">${has?"Обновить месяц":"Добавить месяц"}</button></form>
+  <p class="note">Средняя сумма «Отложено» за последние 6 месяцев подставляется в прогноз цели кнопкой на «Обзоре».</p></div>`;
+}
+
+// ---------- events ----------
+function bind(){
+  const ex=document.getElementById("exp"); if(ex) ex.onclick=()=>{
+    const data=JSON.stringify({settings:state.settings,accounts:state.accounts,positions:state.positions,payouts:state.payouts,months:state.months},null,2);
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+    a.download="kapital-"+new Date().toISOString().slice(0,10)+".json"; document.body.appendChild(a); a.click(); a.remove();};
+  const im=document.getElementById("imp"); if(im) im.onchange=()=>{const f=im.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{try{const d=JSON.parse(r.result); for(const key of ["settings","accounts","positions","payouts","months"]) if(d[key]) state[key]=d[key];
+      saveLocal(); render();}catch(e){const b=document.getElementById("banner"); b.hidden=false; b.textContent="Не удалось прочитать файл: выберите JSON, сохранённый кнопкой «Экспорт»."}};
+    r.readAsText(f);};
+  main.querySelectorAll("tr[data-coll] [data-f]").forEach(el=>{
+    el.addEventListener("change",()=>{const tr=el.closest("tr");const f=el.dataset.f;
+      const v=el.type==="number"?num(el.value):el.value; patch(tr.dataset.coll,tr.dataset.id,{[f]:v})});
+  });
+  main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.classList.contains("armed")) remove(b.dataset.del,b.dataset.id);
+    else{b.classList.add("armed");b.textContent="Удалить?";setTimeout(()=>{if(b.isConnected){b.classList.remove("armed");b.textContent="✕"}},3000)}}));
+  main.querySelectorAll("[data-addacc]").forEach(b=>b.addEventListener("click",()=>add("accounts",{name:KIND_LABEL[b.dataset.addacc],kind:b.dataset.addacc,value:0,cash:0,note:"",order:state.accounts.length})));
+  const ap=document.getElementById("addpos"); if(ap) ap.onclick=()=>add("positions",{name:"Новая бумага",ticker:"",kind:"share",account:"",cost:0,value:0,verdict:"hold"});
+  main.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{posFilter=b.dataset.pf;render()});
+  main.querySelectorAll("[data-yr]").forEach(b=>b.onclick=()=>{payYear=+b.dataset.yr;render()});
+  const pf=document.getElementById("payform"); if(pf) pf.addEventListener("submit",e=>{e.preventDefault();
+    const amount=num(document.getElementById("p-amount").value); if(!amount) return;
+    const month=document.getElementById("p-month").value; payYear=+month.slice(0,4);
+    add("payouts",{month,name:document.getElementById("p-name").value.trim(),kind:document.getElementById("p-kind").value,amount})});
+  const mf=document.getElementById("monthform"); if(mf) mf.addEventListener("submit",e=>{e.preventDefault();
+    const id=document.getElementById("m-id").value, body={income:num(document.getElementById("m-inc").value),expense:num(document.getElementById("m-exp").value),note:""};
+    const ex=state.months.find(m=>m.id===id);
+    if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
+    else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
+  const sc=document.getElementById("s-contrib"); if(sc){
+    sc.addEventListener("input",()=>saveSettings({contribution:num(sc.value)}));
+    document.getElementById("s-rate").addEventListener("input",e=>saveSettings({rate:num(e.target.value)}));
+    main.querySelectorAll("[data-base]").forEach(b=>b.onclick=()=>{saveSettings({base:b.dataset.base});render()});
+    const ub=document.getElementById("s-usebudget"); if(ub) ub.onclick=()=>{const rows=[...state.months].sort((a,b)=>a.id<b.id?1:-1).slice(0,6);
+      const v=Math.round(rows.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/rows.length/1000)*1000; sc.value=v; saveSettings({contribution:v})};
+  }
+}
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;tab=b.dataset.tab;
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0})});
+try{const t=localStorage.getItem("kapital-tab");if(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
+
+// ---------- boot ----------
+render();
+(async()=>{
+  try{ db = window.claude && window.claude.use ? await window.claude.use("db") : null }catch(e){ db=null }
+  if(!db){ loadLocal(); state.loaded=true; persistOK=false; render(); return }
+  persistOK=true; let first={settings:false,accounts:false,positions:false,payouts:false,months:false};
+  const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;render()}else if(state.loaded)schedule()};
+  db.doc("settings/main").onSnapshot(s=>{if(s.exists)Object.assign(state.settings,s.data());first.settings=true;ready()},()=>{first.settings=true;ready()});
+  for(const c of ["accounts","positions","payouts","months"]){
+    db.collection(c).onSnapshot(snap=>{
+      // keep local edits that are still debouncing
+      state[c]=snap.docs.map(d=>{const loc=state[c].find(x=>x.id===d.id);return timers[c+d.id]&&loc?loc:{id:d.id,...d.data()}});
+      first[c]=true; ready()},e=>{first[c]=true;ready();err(e)});
+  }
+  setTimeout(()=>{if(!state.loaded){state.loaded=true;render()}},8000);
+})();
+})();
+</script>
+
+</body></html>
