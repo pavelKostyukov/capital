@@ -138,7 +138,7 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
 <script>
 (function(){
 "use strict";
-const KIND_LABEL={broker:"Брокерский",iis:"ИИС",cash:"Деньги / вклад",property:"Недвижимость",car:"Автомобиль",debt:"Долг / ипотека",foreign:"Зарубежный счёт"};
+const KIND_LABEL={broker:"Брокерский",iis:"ИИС",cash:"Деньги / вклад",foreign:"Зарубежный счёт"};
 const LIQUID=["broker","iis","cash","foreign"];
 const VERDICT={hold:"Держать",buy:"Докупать",sell:"Продать",watch:"Решить"};
 const PKIND={share:"Акция",bond:"Облигация",fund:"Фонд / ЗПИФ",other:"Другое"};
@@ -191,6 +191,15 @@ function loadLocal(){
   // First open: show the archived 20.10.2026 snapshot without a manual import.
   if(BOOTSTRAP_DATA){Object.assign(state,JSON.parse(JSON.stringify(BOOTSTRAP_DATA)));return true}
   return false;
+}
+// One-time cleanup: drop account kinds that are no longer tracked (property, car, debt).
+function purgeLegacyAccounts(){
+  const bad=state.accounts.filter(a=>!(a.kind in KIND_LABEL));
+  if(!bad.length)return;
+  for(const a of bad){
+    state.accounts=state.accounts.filter(x=>x.id!==a.id);
+    if(db)db.collection("accounts").doc(a.id).delete().catch(()=>{});else saveLocal();
+  }
 }
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const timers={};
@@ -332,7 +341,7 @@ function accounts(){
     <td><button class="btn ghost" data-del="accounts" data-id="${a.id}" title="Удалить">✕</button></td></tr>`).join("")}
   </tbody><tfoot><tr><td colspan="4">Чистый капитал</td><td class="num">${rub(t.nw)}</td><td colspan="2" class="muted">ликвидно ${rub(t.liquid)}</td></tr></tfoot></table></div>`:`<div class="empty">Счетов пока нет. Добавьте первый: брокерский счёт, ИИС или вклад.</div>`}
   <div class="toolbar">${Object.entries(KIND_LABEL).map(([v,l])=>`<button class="btn" data-addacc="${v}">+ ${l}</button>`).join("")}</div>
-  <p class="note">Ипотеку записывайте как «Долг / ипотека» с остатком долга: он вычтется из чистого капитала. Машина в цели не учитывается, но видна в капитале.</p></div>`;
+  <p class="note">Дашборд учитывает только ликвидные счета: брокеры, ИИС, деньги, зарубежные счета. Недвижимость, авто и долги в оценку не входят — их рыночная стоимость слишком приблизительна.</p></div>`;
 }
 
 // ----- Positions -----
@@ -732,9 +741,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 render();
 (async()=>{
   try{ db = window.claude && window.claude.use ? await window.claude.use("db") : null }catch(e){ db=null }
-  if(!db){ loadLocal(); state.loaded=true; persistOK=false; render(); return }
+  if(!db){ loadLocal(); purgeLegacyAccounts(); state.loaded=true; persistOK=false; render(); return }
   persistOK=true; let first={settings:false,accounts:false,positions:false,payouts:false,months:false};
-  const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;render()}else if(state.loaded)schedule()};
+  const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;purgeLegacyAccounts();render()}else if(state.loaded)schedule()};
   db.doc("settings/main").onSnapshot(s=>{if(s.exists)Object.assign(state.settings,s.data());first.settings=true;ready()},()=>{first.settings=true;ready()});
   for(const c of ["accounts","positions","payouts","months"]){
     db.collection(c).onSnapshot(snap=>{
@@ -742,7 +751,7 @@ render();
       state[c]=snap.docs.map(d=>{const loc=state[c].find(x=>x.id===d.id);return timers[c+d.id]&&loc?loc:{id:d.id,...d.data()}});
       first[c]=true; ready()},e=>{first[c]=true;ready();err(e)});
   }
-  setTimeout(()=>{if(!state.loaded){state.loaded=true;render()}},8000);
+  setTimeout(()=>{if(!state.loaded){state.loaded=true;purgeLegacyAccounts();render()}},8000);
 })();
 })();
 </script>
