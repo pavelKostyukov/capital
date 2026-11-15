@@ -98,6 +98,13 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
 .seg{display:inline-flex;background:var(--surface2);border-radius:99px;padding:3px}
 .seg button{border:0;background:transparent;font:500 13px var(--body);color:var(--muted);padding:4px 12px;border-radius:99px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+.modal-back{position:fixed;inset:0;background:rgba(10,16,22,.45);display:flex;align-items:flex-start;justify-content:center;padding:36px 16px;z-index:50;overflow:auto}
+.modal-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(880px,100%);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal-card h2{margin:0 0 4px;font-size:17px}
+.modal-card .muted{margin:0 0 12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}}
 </style>
 
@@ -108,6 +115,13 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
       <div class="hstat"><small>Чистый капитал</small><b id="h-nw">—</b></div>
       <div class="hstat"><small>Ликвидно</small><b id="h-liq">—</b></div>
       <div class="hstat"><small>Пассив / мес</small><b id="h-pass">—</b></div>
+      <div class="hbtns">
+        <button class="btn" id="btn-port" title="Загрузить CSV/Excel с бумагами — обновит позиции и создаст нужный брокерский счёт">Портфель из файла</button>
+        <button class="btn" id="btn-pay" title="Загрузить CSV/Excel с дивидендами и купонами">Выплаты из файла</button>
+        <button class="btn primary" id="btn-calc" title="Сложный процент и сроки достижения всех целей">Калькулятор</button>
+      </div>
+      <input type="file" id="f-port" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
+      <input type="file" id="f-pay" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
     </div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
@@ -130,9 +144,10 @@ const VERDICT={hold:"Держать",buy:"Докупать",sell:"Продать
 const PKIND={share:"Акция",bond:"Облигация",fund:"Фонд / ЗПИФ",other:"Другое"};
 const PAYKIND={coupon:"Купон",dividend:"Дивиденд",rent:"Аренда / ЗПИФ",other:"Другое"};
 const MONTHS=["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+const LADDER=[5e6,8e6,12e6,16e6,20e6,30e6,40e6];
+const BOOTSTRAP_DATA=null;
 
 // Example state shown only until the store answers / when the store is unavailable.
-const LADDER=[5e6,8e6,12e6,16e6,20e6,30e6,40e6];
 const state={settings:{contribution:200000,rate:17,base:"liquid"},accounts:[],positions:[],payouts:[],months:[],loaded:false};
 let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
 
@@ -155,8 +170,7 @@ function totals(){
   const nw=assets-debts;
   const now=new Date(), from=new Date(now.getFullYear(),now.getMonth()-11,1);
   const last12=state.payouts.filter(p=>{const d=new Date(p.month+"-01");return d>=from}).reduce((s,p)=>s+num(p.amount),0);
-  const goalBase=state.settings.base==="all"?nw-car:liquid;
-  return {assets,debts,liquid,car,nw,goalBase,passive:last12/12};
+  return {assets,debts,liquid,car,nw,goalBase:state.settings.base==="all"?nw-car:liquid,passive:last12/12};
 }
 function project(start,liquid,monthly,ratePct,targets){
   // liquid part compounds monthly, rest (property equity) stays flat; contributions go to liquid
@@ -172,7 +186,12 @@ const monthsLabel=m=>{if(m==null)return "дальше 20 лет";const d=new Dat
 // ---------- storage ----------
 const LS="kapital-local-v1";
 function saveLocal(){if(persistOK)return;try{localStorage.setItem(LS,JSON.stringify({settings:state.settings,accounts:state.accounts,positions:state.positions,payouts:state.payouts,months:state.months}))}catch(e){}}
-function loadLocal(){try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){Object.assign(state,s);return true}}catch(e){}return false}
+function loadLocal(){
+  try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){Object.assign(state,s);return true}}catch(e){}
+  // First open: show the archived 20.10.2026 snapshot without a manual import.
+  if(BOOTSTRAP_DATA){Object.assign(state,JSON.parse(JSON.stringify(BOOTSTRAP_DATA)));return true}
+  return false;
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const timers={};
 function patch(coll,id,fields){
@@ -229,6 +248,7 @@ function overview(){
   const pl=state.positions.reduce((x,p)=>x+num(p.value)-num(p.cost),0);
   const byAcc=state.accounts.filter(a=>a.kind!=="debt").map(a=>({n:a.name,k:a.kind,v:num(a.value)+num(a.cash)})).sort((a,b)=>b.v-a.v);
   const maxA=Math.max(1,...byAcc.map(a=>a.v));
+  const baseLabel=s.base==="all"?"весь капитал без машины":"ликвидный портфель";
   return `
   <section class="grid kpis">
     <div class="panel kpi"><small>Чистый капитал</small><div class="v">${mln(t.nw)}</div><div class="n">активы ${mln(t.assets)} · долги ${mln(t.debts)}</div></div>
@@ -238,16 +258,16 @@ function overview(){
   </section>
   <section class="grid two">
     <div class="panel">
-      <h2>Путь к 40 млн <span class="sub">считаю от: ${s.base==="all"?"всего капитала без машины":"ликвидного портфеля"} — ${mln(t.goalBase)}</span></h2>
+      <h2>Путь к 40 млн <span class="sub">база: ${baseLabel} — ${mln(t.goalBase)}</span></h2>
       <div class="scen">
+        <label class="f">Считать цель от<select id="s-base"><option value="liquid" ${s.base!=="all"?"selected":""}>Ликвидный портфель</option><option value="all" ${s.base==="all"?"selected":""}>Весь капитал без машины</option></select></label>
         <label class="f">Пополнение в месяц, ₽<input id="s-contrib" type="number" step="10000" value="${s.contribution}"></label>
         <label class="f">Доходность, % годовых<input id="s-rate" type="number" step="0.5" value="${s.rate}"></label>
-        <div class="f" style="display:grid;gap:4px;font-size:12px;color:var(--muted)">Считать от<span class="seg" role="group" aria-label="База цели"><button data-base="liquid" aria-pressed="${s.base!=="all"}">Портфель</button><button data-base="all" aria-pressed="${s.base==="all"}">Весь капитал</button></span></div>
         ${avgSave!=null?`<button class="btn" id="s-usebudget">Взять из бюджета: ${k(avgSave)}</button>`:""}
       </div>
       <div id="goals"></div>
       <div id="proj"></div>
-      <p class="note">Полоска каждого этапа показывает путь от предыдущего этапа. Прогноз: портфель растёт по сложному проценту с ежемесячным пополнением; в режиме «Весь капитал» квартира учитывается по текущей оценке без роста. Это ориентир, а не обещание доходности.</p>
+      <p class="note">Прогноз: ликвидная часть растёт по сложному проценту с ежемесячным пополнением, недвижимость и прочие неликвидные активы учитываются по текущей оценке без роста. Это ориентир, а не обещание доходности. Этапы: 5 → 8 → 12 → 16 → 20 → 30 → 40 млн ₽.</p>
     </div>
     <div class="grid" style="align-content:start">
       <div class="panel">
@@ -416,6 +436,247 @@ function budget(){
   <p class="note">Средняя сумма «Отложено» за последние 6 месяцев подставляется в прогноз цели кнопкой на «Обзоре».</p></div>`;
 }
 
+// ---------- modal, toast, file import, calculator ----------
+let modalBack=null;
+function openModal(html){closeModal();modalBack=document.createElement("div");modalBack.className="modal-back";
+  modalBack.innerHTML=`<div class="modal-card" role="dialog" aria-modal="true">${html}</div>`;
+  modalBack.addEventListener("mousedown",e=>{if(e.target===modalBack)closeModal()});
+  document.body.appendChild(modalBack);return modalBack}
+function closeModal(){if(modalBack){modalBack.remove();modalBack=null}}
+function toast(msg){let d=document.getElementById("toast");if(!d){d=document.createElement("div");d.id="toast";d.className="toast";document.body.appendChild(d)}
+  d.textContent=msg;d.classList.add("show");clearTimeout(d._t);d._t=setTimeout(()=>d.classList.remove("show"),3500)}
+
+function loadXLSXLib(){if(window.XLSX)return Promise.resolve();
+  return new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+    s.onload=()=>res();s.onerror=()=>rej(new Error("xlsx"));document.head.appendChild(s)})}
+
+function parseCSV(text){
+  text=String(text).replace(/^﻿/,"");
+  const nl=text.indexOf("\n");const first=nl<0?text:text.slice(0,nl);
+  const sep=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":",";
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===sep){row.push(cur);cur=""}
+    else if(c==="\n"){row.push(cur);rows.push(row);row=[];cur=""}
+    else if(c!=="\r")cur+=c}
+  if(cur||row.length){row.push(cur);rows.push(row)}
+  return rows.filter(r=>r.some(c=>String(c).trim()!==""));
+}
+
+async function fileToGrid(file){
+  const name=file.name.toLowerCase();
+  if(name.endsWith(".json")){return {json:JSON.parse(await file.text())}}
+  if(name.endsWith(".csv")||name.endsWith(".txt")) return {grid:parseCSV(await file.text())};
+  await loadXLSXLib();
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  return {grid:XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""})};
+}
+
+const POSCOL={name:["название","наименование","бумага","инструмент","name","issuer","эмитент","security","company"],
+  ticker:["тикер","ticker","tiker","код","код бумаги","secid","symbol"],
+  qty:["кол-во","количество","qty","quantity","шт","штук","кол"],
+  price:["цена","price","курс","цена за шт","цена, руб"],
+  value:["сумма","стоимость","сумма сделки","сумма по сделке","value","итого","оборот","сумма (руб)","сумма, руб","сумма руб","notional","сумма позиции"],
+  cost:["вложено","себестоимость","cost","цена покупки","сумма покупки","затраты","avg price","средняя цена"],
+  kind:["вид","тип","kind","type","тип бумаги","asset type"]};
+const PAYCOL={date:["дата","месяц","date","month","период","period"],
+  name:["источник","название","наименование","name","бумага","инструмент","issuer","security"],
+  amount:["сумма","amount","сумма выплаты","выплата","начислено","сумма, руб"],
+  kind:["вид","тип","kind","type","тип выплаты"]};
+
+function normH(h){return String(h).toLowerCase().replace(/ё/g,"е").trim()}
+function gridToObjects(grid,COLMAP){
+  let hi=-1;
+  for(let i=0;i<Math.min(grid.length,15);i++){
+    const hs=grid[i].map(normH);
+    if(Object.values(COLMAP).some(c=>c.some(k=>hs.includes(k)))){hi=i;break}}
+  if(hi<0)return {headers:[],rows:[]};
+  const headers=grid[hi].map(normH),idx={};
+  for(const f in COLMAP)idx[f]=headers.findIndex(h=>COLMAP[f].includes(h));
+  const rows=grid.slice(hi+1).map(r=>{const o={};for(const f in idx)o[f]=idx[f]>=0?r[idx[f]]:"";return o})
+    .filter(o=>Object.values(o).some(v=>String(v).trim()!==""));
+  return {headers:grid[hi],rows};
+}
+
+function guessKindStr(s){s=String(s||"").toLowerCase();
+  if(/облиг|bond/.test(s))return "bond";
+  if(/фонд|зпиф|etf|fund/.test(s))return "fund";
+  return "share"}
+function posFromRow(o){
+  const name=String(o.name||"").trim(),ticker=String(o.ticker||"").trim().toUpperCase();
+  let value=num(o.value),cost=num(o.cost);const qty=num(o.qty),price=num(o.price);
+  if(!value&&qty&&price)value=qty*price;
+  if(!value||(!name&&!ticker))return null;
+  return {name:name||ticker,ticker,kind:guessKindStr(o.kind),cost:cost||value,value,verdict:"watch",note:"импорт"};
+}
+function aggregatePositions(list){
+  const map=new Map();
+  for(const p of list){const key=(p.ticker||p.name).toLowerCase();const ex=map.get(key);
+    if(ex){ex.value+=p.value;if(p.cost)ex.cost+=p.cost}else map.set(key,{...p})}
+  return [...map.values()];
+}
+const MN={"январ":1,"феврал":2,"март":3,"апрел":4,"ма":5,"июн":6,"июл":7,"август":8,"сентябр":9,"октябр":10,"ноябр":11,"декабр":12};
+function monthNorm(v){
+  const s=String(v||"").trim();if(!s)return "";
+  let m=s.match(/(\d{4})-(\d{1,2})/);if(m)return m[1]+"-"+String(m[2]).padStart(2,"0");
+  m=s.match(/(\d{1,2})[.\s](\d{4})/);if(m)return m[2]+"-"+String(m[1]).padStart(2,"0");
+  m=s.match(/(\d{1,2})[.\s](\d{1,2})[.\s](\d{4})/);if(m)return m[3]+"-"+String(m[2]).padStart(2,"0");
+  m=s.match(/\d{4}/);const y=m?m[0]:(new Date()).getFullYear();
+  const low=s.toLowerCase();
+  for(const k of Object.keys(MN)){
+    if(k==="ма"){if(/ма[йя]/.test(low))return y+"-05";continue}
+    if(low.includes(k))return y+"-"+String(MN[k]).padStart(2,"0")}
+  return "";
+}
+function kindNormP(v){const s=String(v||"").toLowerCase();
+  if(/дивид/.test(s))return "dividend";
+  if(/купон/.test(s))return "coupon";
+  if(/аренд|зпиф/.test(s))return "rent";
+  return "other"}
+function payoutsFromRows(rows){
+  const out=[];
+  for(const o of rows){
+    const month=monthNorm(o.date),name=String(o.name||"").trim(),amount=num(o.amount);
+    if(!month||!name||!amount)continue;
+    out.push({month,name,kind:kindNormP(o.kind),amount});
+  }
+  return out;
+}
+
+function importPositionsModal(list,file){
+  const accs=state.accounts.filter(a=>LIQUID.includes(a.kind)).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  const base=file.name.replace(/\.[^.]+$/,"");
+  const rowsHtml=list.slice(0,12).map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.ticker)}</td><td class="num">${rub(p.value)}</td><td class="num">${p.cost&&p.cost!==p.value?rub(p.cost):'<span class="muted">—</span>'}</td></tr>`).join("");
+  openModal(`<h2>Импорт портфеля</h2>
+  <p class="muted">${esc(file.name)}: найдено ${list.length} позиций${list.length>12?" (показаны первые 12)":""}. Повторная загрузка обновит стоимости, дубли не создадутся.</p>
+  <div class="scen">
+    <label class="f">Счёт<select id="im-acc">${accs.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("")}<option value="__new__">+ Новый брокерский счёт</option></select></label>
+    <label class="f" id="im-newwrap" hidden>Название счёта<input id="im-newname" value="${esc(base)}"></label>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Бумага</th><th>Тикер</th><th class="num">Стоимость</th><th class="num">Вложено</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+  <div class="toolbar"><button class="btn primary" id="im-ok">Зачислить на счёт</button><button class="btn" id="im-cancel">Отмена</button></div>`);
+  const sel=document.getElementById("im-acc"),nw=document.getElementById("im-newwrap");
+  sel.onchange=()=>nw.hidden=sel.value!=="__new__";
+  document.getElementById("im-cancel").onclick=closeModal;
+  document.getElementById("im-ok").onclick=()=>{
+    const accId=sel.value,nn=document.getElementById("im-newname").value.trim()||base;
+    let acc=state.accounts.find(a=>a.id===accId);
+    if(accId==="__new__"){add("accounts",{name:nn,kind:"broker",value:0,cash:0,note:"импорт "+new Date().toLocaleDateString("ru-RU"),order:state.accounts.length});
+      acc=state.accounts[state.accounts.length-1]}
+    let upd=0,addn=0;
+    for(const p of list){
+      p.account=acc.id;
+      const ex=state.positions.find(x=>x.account===acc.id&&((p.ticker&&x.ticker===p.ticker)||(p.name&&x.name===p.name)));
+      if(ex){if(num(ex.value)!==p.value||num(ex.cost)!==p.cost){patch("positions",ex.id,{value:p.value,cost:p.cost||ex.cost});upd++}}
+      else{add("positions",p);addn++}
+    }
+    closeModal();tab="positions";render();
+    toast(`Готово: добавлено ${addn}, обновлено ${upd}. Счёт: ${acc.name}`);
+  };
+}
+
+function importPayoutsModal(list,file){
+  const fresh=list.filter(p=>!state.payouts.some(x=>x.month===p.month&&x.name===p.name&&Math.abs(num(x.amount)-p.amount)<1));
+  const rowsHtml=list.slice(0,12).map(p=>`<tr><td>${p.month}</td><td>${esc(p.name)}</td><td>${PAYKIND[p.kind]||"Другое"}</td><td class="num">${rub(p.amount)}</td></tr>`).join("");
+  openModal(`<h2>Импорт выплат</h2>
+  <p class="muted">${esc(file.name)}: найдено ${list.length} записей, новых — ${fresh.length}${list.length>12?" (показаны первые 12)":""}. Дубликаты пропускаются.</p>
+  <div class="tablewrap"><table><thead><tr><th>Месяц</th><th>Источник</th><th>Вид</th><th class="num">Сумма</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+  <div class="toolbar"><button class="btn primary" id="ip-ok">Добавить ${fresh.length} выплат</button><button class="btn" id="ip-cancel">Отмена</button></div>`);
+  document.getElementById("ip-cancel").onclick=closeModal;
+  document.getElementById("ip-ok").onclick=()=>{
+    let n=0;
+    for(const p of fresh){add("payouts",p);n++}
+    closeModal();tab="payouts";render();
+    toast(`Готово: добавлено ${n} выплат${list.length-n?`, пропущено дублей ${list.length-n}`:""}.`);
+  };
+}
+
+async function handlePortfolioFile(file){
+  try{
+    const res=await fileToGrid(file);
+    if(res.json){
+      const j=res.json;
+      if(Array.isArray(j.positions)){
+        const list=aggregatePositions(j.positions.map(p=>({name:String(p.name||""),ticker:String(p.ticker||"").toUpperCase(),
+          kind:PKIND[p.kind]?p.kind:"share",cost:num(p.cost)||num(p.value),value:num(p.value)})).filter(p=>p.value>0));
+        if(list.length){importPositionsModal(list,file);return}
+      }
+      if(Array.isArray(j.payouts)){
+        const list=payoutsFromRows(j.payouts.map(p=>({date:p.month||p.date,name:p.name,amount:p.amount,kind:p.kind})));
+        if(list.length){importPayoutsModal(list,file);return}
+      }
+      toast("В файле нет позиций или выплат — это, похоже, резервная копия: загрузите её через «Импорт».");return;
+    }
+    let list=aggregatePositions(gridToObjects(res.grid,POSCOL).rows.map(posFromRow).filter(Boolean));
+    if(!list.length){
+      const pl=payoutsFromRows(gridToObjects(res.grid,PAYCOL).rows);
+      if(pl.length){importPayoutsModal(pl,file);return}
+      toast("Не нашёл колонки «название/тикер» и «сумма». Пришлите пример файла — подгоню парсер.");return;
+    }
+    importPositionsModal(list,file);
+  }catch(e){toast(e&&e.message==="xlsx"?"Не загрузилась библиотека для Excel — проверьте интернет или сохраните файл как CSV.":"Не удалось прочитать файл: "+(e.message||e))}
+}
+
+async function handlePayoutsFile(file){
+  try{
+    const res=await fileToGrid(file);
+    let list=[];
+    if(res.json){const j=res.json;const arr=Array.isArray(j)?j:(j.payouts||[]);
+      list=payoutsFromRows(arr.map(p=>({date:p.month||p.date,name:p.name,amount:p.amount,kind:p.kind})))}
+    else list=payoutsFromRows(gridToObjects(res.grid,PAYCOL).rows);
+    if(!list.length){toast("Не нашёл колонки «дата/месяц», «источник» и «сумма».");return}
+    importPayoutsModal(list,file);
+  }catch(e){toast("Не удалось прочитать файл выплат.")}
+}
+
+// ----- Calculator -----
+function openCalc(){
+  const t=totals(),s=state.settings;
+  openModal(`<h2>Калькулятор сложного процента</h2>
+  <p class="muted">Старт — текущая база цели: ${mln(t.goalBase)}. Считаем сложный процент с ежемесячным пополнением и показываем, когда достигаются все этапы до 40 млн.</p>
+  <div class="scen">
+    <label class="f">Стартовая сумма, ₽<input id="c-start" type="number" step="10000" value="${Math.round(t.goalBase)}"></label>
+    <label class="f">Пополнение в месяц, ₽<input id="c-contrib" type="number" step="5000" value="${s.contribution}"></label>
+    <label class="f">Ставка, % годовых<input id="c-rate" type="number" step="0.5" value="${s.rate}"></label>
+    <label class="f">Срок для сравнения, лет<input id="c-years" type="number" step="1" min="1" max="50" value="10"></label>
+  </div>
+  <div id="c-kpis" class="grid kpis" style="margin:12px 0"></div>
+  <div id="c-chart"></div>
+  <div id="c-goals"></div>
+  <div class="toolbar"><button class="btn" id="c-save">Применить пополнение и ставку к прогнозу</button><button class="btn" id="c-close">Закрыть</button></div>`);
+  const gv=id=>num(document.getElementById(id).value);
+  const upd=()=>{
+    const P=gv("c-start"),M=gv("c-contrib"),R=gv("c-rate")/100,T=Math.max(1,gv("c-years")||10);
+    const n=T*12,i=R/12,g=Math.pow(1+i,n);
+    const fvC=i?P*g+M*(g-1)/i:P+M*n;
+    const C=M*n,fvS=P*(1+R*T)+C*(1+R*T/2);
+    const invested=P+C;
+    document.getElementById("c-kpis").innerHTML=`
+      <div class="panel kpi"><small>Через ${T} лет · сложный %</small><div class="v">${mln(fvC)}</div><div class="n">прибыль ${mln(fvC-invested)} · вложено ${mln(invested)}</div></div>
+      <div class="panel kpi"><small>Через ${T} лет · простой %</small><div class="v">${mln(fvS)}</div><div class="n">прибыль ${mln(fvS-invested)}</div></div>
+      <div class="panel kpi"><small>Эффект реинвеста</small><div class="v up">+${mln(fvC-fvS)}</div><div class="n">насколько сложный % обгоняет простой</div></div>`;
+    let L=P;const hit={},pts=[{m:0,v:P}];
+    for(let m=1;m<=240;m++){L=L*(1+i)+M;if(m%12===0)pts.push({m,v:L});
+      for(const tg of LADDER)if(hit[tg]==null&&L>=tg)hit[tg]=m;
+      if(LADDER.every(tg=>hit[tg]!=null)&&m>=36)break}
+    const ahead=LADDER.filter(v=>v>P);
+    document.getElementById("c-chart").innerHTML=ahead.length?projChart(pts,ahead.map(v=>({n:(v/1e6)+" млн",v}))):`<p class="note">Все этапы уже пройдены — стартовая сумма выше 40 млн.</p>`;
+    const d=m=>{const x=new Date();x.setMonth(x.getMonth()+m);return x.toLocaleDateString("ru-RU",{month:"long",year:"numeric"})};
+    document.getElementById("c-goals").innerHTML=`<div class="tablewrap"><table><thead><tr><th>Этап</th><th class="num">Сумма</th><th>Достижение</th><th class="num">Срок от старта</th></tr></thead><tbody>
+    ${LADDER.map(v=>{const m=hit[v];return `<tr><td>${v/1e6} млн</td><td class="num">${mln(v)}</td>
+      <td>${m?d(m):'<span class="muted">дальше 20 лет</span>'}</td><td class="num">${m?monthsLabel(m):"—"}</td></tr>`}).join("")}
+    </tbody></table></div>
+    <p class="note">Сложный процент: капитал растёт ежемесячно, пополнение добавляется в конце каждого месяца. Простой процент — для сравнения: процент начисляется только на первоначальную сумму и взносы без реинвеста. Цели считаются от стартовой суммы целиком (все этапы — по ликвидной базе).</p>`;
+  };
+  ["c-start","c-contrib","c-rate","c-years"].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",upd)});
+  document.getElementById("c-close").onclick=closeModal;
+  document.getElementById("c-save").onclick=()=>{saveSettings({contribution:gv("c-contrib"),rate:gv("c-rate")});closeModal();toast("Настройки прогноза на «Обзоре» обновлены.")};
+  upd();
+}
+
 // ---------- events ----------
 function bind(){
   const ex=document.getElementById("exp"); if(ex) ex.onclick=()=>{
@@ -449,7 +710,7 @@ function bind(){
   const sc=document.getElementById("s-contrib"); if(sc){
     sc.addEventListener("input",()=>saveSettings({contribution:num(sc.value)}));
     document.getElementById("s-rate").addEventListener("input",e=>saveSettings({rate:num(e.target.value)}));
-    main.querySelectorAll("[data-base]").forEach(b=>b.onclick=()=>{saveSettings({base:b.dataset.base});render()});
+    document.getElementById("s-base").addEventListener("change",e=>{saveSettings({base:e.target.value});render()});
     const ub=document.getElementById("s-usebudget"); if(ub) ub.onclick=()=>{const rows=[...state.months].sort((a,b)=>a.id<b.id?1:-1).slice(0,6);
       const v=Math.round(rows.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/rows.length/1000)*1000; sc.value=v; saveSettings({contribution:v})};
   }
@@ -458,6 +719,14 @@ document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.cl
   document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
   try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0})});
 try{const t=localStorage.getItem("kapital-tab");if(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
+
+// header tools (static, wired once)
+document.getElementById("btn-port").onclick=()=>document.getElementById("f-port").click();
+document.getElementById("f-port").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handlePortfolioFile(f)};
+document.getElementById("btn-pay").onclick=()=>document.getElementById("f-pay").click();
+document.getElementById("f-pay").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handlePayoutsFile(f)};
+document.getElementById("btn-calc").onclick=openCalc;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 
 // ---------- boot ----------
 render();
