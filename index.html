@@ -133,6 +133,7 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
       <button role="tab" data-tab="payouts" aria-selected="false">Выплаты</button>
       <button role="tab" data-tab="budget" aria-selected="false">Бюджет</button>
       <button role="tab" data-tab="tasks" aria-selected="false">Налоги и задачи</button>
+      <button role="tab" data-tab="connect" aria-selected="false">Подключения</button>
     </nav>
   </div>
 </header>
@@ -249,10 +250,10 @@ function renderHeader(){const t=totals();
 function render(){
   renderHeader();
   const banner=`<div class="banner" id="banner" hidden></div>`+(persistOK||!state.loaded?"":`<div class="banner" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json — ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
+    <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json. ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab};
+  const views={overview,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
   main.innerHTML=banner+views[tab]();
   bind();
   if(tab==="overview") renderOverviewLive();
@@ -762,6 +763,199 @@ function bindNew(){
     add("tasks",{title:document.getElementById("t-title").value.trim(),group:document.getElementById("t-group").value.trim(),done:false})});
 }
 
+// ----- Broker connections: T-Invest API (read-only token kept only in this browser) -----
+const TINV_KEY="kapital-tinvest", TINV_INST_KEY="kapital-tinvest-inst";
+const TINV_BASES=["https://invest-public-api.tbank.ru/rest","https://invest-public-api.tinkoff.ru/rest"];
+const TINV_SVC="tinkoff.public.invest.api.contract.v1.";
+const TINV_EVERY=10*60*1000;
+let tinv=(()=>{try{return JSON.parse(localStorage.getItem(TINV_KEY)||"null")||{auto:true}}catch(e){return {auto:true}}})();
+let tinvBusy=false, tinvTimer=null, tinvBooted=false;
+function saveTinv(){try{localStorage.setItem(TINV_KEY,JSON.stringify(tinv))}catch(e){}}
+function loadInst(){try{return JSON.parse(localStorage.getItem(TINV_INST_KEY)||"{}")||{}}catch(e){return {}}}
+function saveInst(m){try{localStorage.setItem(TINV_INST_KEY,JSON.stringify(m))}catch(e){}}
+const mv=m=>m?(parseFloat(m.units||0)||0)+(Number(m.nano)||0)/1e9:0;
+const maskToken=t=>t?String(t).slice(0,4)+"••••••"+String(t).slice(-4):"";
+async function tcall(method,body){
+  const path="/"+TINV_SVC+method;
+  const bases=tinv.proxy?[String(tinv.proxy).trim().replace(/\/+$/,"").replace(/\/rest$/,"")+"/rest"]:TINV_BASES;
+  let lastErr=null;
+  for(const b of bases){
+    let r;
+    try{r=await fetch(b+path,{method:"POST",headers:{"Authorization":"Bearer "+tinv.token,"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(body||{})})}
+    catch(e){lastErr={kind:navigator.onLine===false?"offline":"blocked",msg:String(e&&e.message||e)};continue}
+    if(r.status===401||r.status===403){let t="";try{t=(await r.json()).message||""}catch(e){}throw {kind:"auth",status:r.status,msg:t}}
+    if(!r.ok){let t="";try{const j=await r.json();t=j.message||j.description||JSON.stringify(j)}catch(e){}throw {kind:"http",status:r.status,msg:String(t).slice(0,300)}}
+    return r.json();
+  }
+  throw lastErr||{kind:"blocked"};
+}
+function putDoc(coll,id,body){
+  const list=state[coll], i=list.findIndex(x=>x.id===id);
+  if(i>=0) list[i]={...list[i],...body}; else list.push({id,...body});
+  if(db){const {id:_,...b}=list[i>=0?i:list.length-1];db.collection(coll).doc(id).set(b).catch(err)}
+}
+const TKIND={share:"share",bond:"bond",etf:"fund",currency:"other",futures:"other",option:"other",sp:"other"};
+const normT=t=>String(t||"").toUpperCase().replace(/@$/,"").trim();
+function linkAccount(a){
+  let acc=state.accounts.find(x=>x.tid===a.id);
+  if(!acc){
+    const isIIS=a.type==="ACCOUNT_TYPE_TINKOFF_IIS", kind=isIIS?"iis":"broker";
+    acc=state.accounts.find(x=>!x.tid&&x.kind===kind&&/т-?банк|тинькофф|tinkoff|t-bank/i.test(x.name||""));
+    if(acc){putDoc("accounts",acc.id,{tid:a.id});}
+    else{const id="tinv-"+a.id;putDoc("accounts",id,{name:"Т-Банк · "+(a.name||(isIIS?"ИИС":"Брокерский")),kind,value:0,cash:0,note:"",order:state.accounts.length,tid:a.id});acc=state.accounts.find(x=>x.id===id)}
+  }
+  return acc.id;
+}
+async function ensureInst(inst,uid,fallback){
+  if(!uid||inst[uid]) return;
+  try{const r=await tcall("InstrumentsService/GetInstrumentBy",{idType:"INSTRUMENT_ID_TYPE_UID",id:uid});const i=r.instrument||{};
+    inst[uid]={name:i.name||fallback.name||"",ticker:i.ticker||fallback.ticker||"",type:i.instrumentType||fallback.type||""}}
+  catch(e){if(e&&e.kind==="auth")throw e;inst[uid]={name:fallback.name||fallback.ticker||"",ticker:fallback.ticker||"",type:fallback.type||""}}
+}
+async function tinvSync(manual){
+  if(!tinv.token||tinvBusy) return; tinvBusy=true; renderConnLive();
+  const sum={accounts:0,positions:0,payouts:0};
+  try{
+    const accs=((await tcall("UsersService/GetAccounts",{})).accounts||[]).filter(a=>a.status!=="ACCOUNT_STATUS_CLOSED"&&a.accessLevel!=="ACCOUNT_ACCESS_LEVEL_NO_ACCESS");
+    const inst=loadInst(); tinv.opsFrom=tinv.opsFrom||{};
+    for(const a of accs){
+      const p=await tcall("OperationsService/GetPortfolio",{accountId:a.id,currency:"RUB"});
+      const accId=linkAccount(a); sum.accounts++;
+      const total=mv(p.totalAmountPortfolio), cash=mv(p.totalAmountCurrencies);
+      putDoc("accounts",accId,{value:Math.round(total-cash),cash:Math.round(cash),synced:new Date().toISOString()});
+      const ps=(p.positions||[]).filter(x=>x.instrumentType!=="currency");
+      for(const x of ps) await ensureInst(inst,x.instrumentUid,{name:x.ticker,ticker:x.ticker,type:x.instrumentType});
+      // Prices of foreign papers come in their own currency: scale them so each type adds up to the broker's RUB total.
+      const TT={share:p.totalAmountShares,bond:p.totalAmountBonds,etf:p.totalAmountEtf,futures:p.totalAmountFutures,option:p.totalAmountOptions,sp:p.totalAmountSp};
+      const rows=ps.map(x=>{const q=mv(x.quantity),cur=String((x.currentPrice&&x.currentPrice.currency)||"rub").toLowerCase();
+        return {x,q,cur,native:q*(mv(x.currentPrice)+mv(x.currentNkd)),cost:q*mv(x.averagePositionPrice)}});
+      const factor={};
+      for(const t in TT){const rs=rows.filter(r=>r.x.instrumentType===t);const fr=rs.filter(r=>r.cur!=="rub"),fn=fr.reduce((s,r)=>s+r.native,0);
+        if(fr.length&&fn>0){const rub=rs.filter(r=>r.cur==="rub").reduce((s,r)=>s+r.native,0);factor[t]=Math.max(0,(mv(TT[t])-rub)/fn)}}
+      const seen=new Set();
+      for(const r of rows){
+        const uid=r.x.instrumentUid||r.x.figi, info=inst[r.x.instrumentUid]||{}, f=r.cur==="rub"?1:(factor[r.x.instrumentType]||1);
+        const tk=info.ticker||r.x.ticker||"";
+        let pos=state.positions.find(q=>q.tuid===uid&&q.account===accId)
+          ||state.positions.find(q=>!q.tuid&&q.account===accId&&tk&&normT(q.ticker)===normT(tk))
+          ||state.positions.find(q=>!q.tuid&&!q.account&&tk&&normT(q.ticker)===normT(tk));
+        const body={account:accId,tuid:uid,ticker:tk||(pos&&pos.ticker)||"",qty:r.q,value:Math.round(r.native*f),cost:Math.round(r.cost*f)};
+        if(pos) putDoc("positions",pos.id,body);
+        else putDoc("positions","tinv-"+accId+"-"+uid,{name:info.name||tk||uid,kind:TKIND[r.x.instrumentType]||"other",verdict:"hold",...body});
+        seen.add(uid); sum.positions++;
+      }
+      for(const q of state.positions.filter(q=>q.account===accId&&q.tuid&&!seen.has(q.tuid)&&(num(q.value)||num(q.qty)))) putDoc("positions",q.id,{value:0,cost:0,qty:0});
+      // Coupons and dividends since the account opened (then only the last two weeks on each refresh)
+      const from=tinv.opsFrom[a.id]||a.openedDate||new Date(Date.now()-3*365*864e5).toISOString();
+      let cursor="",guard=0; const items=[];
+      do{const r=await tcall("OperationsService/GetOperationsByCursor",{accountId:a.id,from,to:new Date().toISOString(),cursor,limit:1000,
+          operationTypes:["OPERATION_TYPE_COUPON","OPERATION_TYPE_DIVIDEND"],state:"OPERATION_STATE_EXECUTED",withoutCommissions:true,withoutTrades:true,withoutOvernights:true});
+        items.push(...(r.items||[])); cursor=r.hasNext?r.nextCursor:""}while(cursor&&++guard<30);
+      let lookups=0;
+      for(const it of items){const id="tinv-op-"+it.id; if(state.payouts.some(p=>p.id===id)) continue;
+        const amt=mv(it.payment); if(!(amt>0)) continue;
+        if(it.instrumentUid&&!inst[it.instrumentUid]&&lookups++<60) await ensureInst(inst,it.instrumentUid,{name:it.name,type:it.instrumentType});
+        const info=inst[it.instrumentUid]||{}, t=info.type||it.instrumentType||"";
+        const kind=it.type==="OPERATION_TYPE_COUPON"?"coupon":(t==="etf"?"rent":"dividend");
+        putDoc("payouts",id,{month:String(it.date||"").slice(0,7),name:info.name||it.name||"Выплата",kind,amount:Math.round(amt),src:"tinvest"}); sum.payouts++}
+      tinv.opsFrom[a.id]=new Date(Date.now()-14*864e5).toISOString();
+    }
+    saveInst(inst); if(!db) saveLocal();
+    tinv.last=Date.now(); tinv.lastError=null; tinv.lastSum=sum; saveTinv();
+    if(manual) toast(`Т-Инвестиции: счетов ${sum.accounts}, бумаг ${sum.positions}, новых выплат ${sum.payouts}`);
+  }catch(e){tinv.lastError=e&&e.kind?e:{kind:"http",msg:String(e&&e.message||e)};saveTinv();if(!db)saveLocal();if(manual)toast("Не удалось обновить Т-Инвестиции — подробности во вкладке «Подключения»")}
+  finally{tinvBusy=false;if(!isEditing())render();else renderHeader()}
+}
+const tinvAutoOK=()=>!!tinv.token&&tinv.auto!==false&&!(tinv.lastError&&tinv.lastError.kind==="auth");
+function tinvSchedule(){clearInterval(tinvTimer);tinvTimer=null;
+  if(tinv.token&&tinv.auto!==false) tinvTimer=setInterval(()=>{if(document.visibilityState!=="hidden"&&tinvAutoOK())tinvSync(false)},TINV_EVERY)}
+function tinvBoot(){if(tinvBooted)return;tinvBooted=true;tinvSchedule();
+  if(tinvAutoOK()&&Date.now()-(tinv.last||0)>60*1000) tinvSync(false);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tinvAutoOK()&&Date.now()-(tinv.last||0)>TINV_EVERY)tinvSync(false)})}
+function ago(ts){if(!ts)return "ещё не было";const m=Math.round((Date.now()-ts)/60000);return m<1?"только что":m<60?m+" мин назад":new Date(ts).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+function tinvErrorText(e){if(!e)return "";
+  if(e.kind==="blocked") return "Браузер не пустил запрос к Т-Инвестициям (CORS). Нужен прокси — шаги ниже, это 5 минут.";
+  if(e.kind==="offline") return "Нет интернета. Синхронизация повторится, когда связь вернётся.";
+  if(e.kind==="auth") return "Токен не подошёл"+(e.msg?" ("+e.msg+")":"")+". Проверьте, что скопировали его целиком и не отозвали в настройках Т-Инвестиций.";
+  return "Ошибка Т-Инвестиций"+(e.status?" "+e.status:"")+(e.msg?": "+e.msg:"")+".";}
+function proxyCode(){const o=location.origin&&location.origin.startsWith("http")?location.origin:"https://ваш-сайт";
+  return `// Cloudflare Worker: пропускает запросы с вашего сайта к API Т-Инвестиций.
+// Токен через него только проходит и нигде не сохраняется.
+const ORIGIN = "${o}";
+const API = "https://invest-public-api.tbank.ru";
+export default {
+  async fetch(req) {
+    const cors = {
+      "Access-Control-Allow-Origin": ORIGIN,
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Access-Control-Max-Age": "86400",
+    };
+    if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+    const url = new URL(req.url);
+    if (req.method !== "POST" || req.headers.get("Origin") !== ORIGIN ||
+        !url.pathname.startsWith("/rest/tinkoff.public.invest.api.contract.v1."))
+      return new Response("Forbidden", { status: 403, headers: cors });
+    const r = await fetch(API + url.pathname, {
+      method: "POST",
+      headers: { "Authorization": req.headers.get("Authorization") || "", "Content-Type": "application/json" },
+      body: await req.text(),
+    });
+    return new Response(r.body, { status: r.status, headers: { ...cors, "Content-Type": "application/json" } });
+  },
+};`}
+function connect(){
+  const on=!!tinv.token, e=tinv.lastError, s=tinv.lastSum;
+  const linked=state.accounts.filter(a=>a.tid);
+  const status=tinvBusy?`<span class="pill watch">обновляю…</span>`:!on?`<span class="pill sell">не подключено</span>`:e?`<span class="pill sell">ошибка</span>`:`<span class="pill buy">подключено</span>`;
+  return `<div class="panel"><h2>Т-Инвестиции ${status} <span class="sub" id="tinv-ago">последнее успешное обновление: ${ago(tinv.last)}</span></h2>
+  ${on?`<div class="grid" style="gap:10px">
+    <div class="alloc"><div class="row"><span>Токен</span><b>${esc(maskToken(tinv.token))}</b></div>
+    ${linked.map(a=>`<div class="row"><span>${esc(a.name)} <span class="muted">· ${KIND_LABEL[a.kind]||""}</span></span><b>${mln(num(a.value)+num(a.cash))}</b></div>`).join("")}
+    ${s?`<div class="row"><span class="muted">Последняя синхронизация</span><span class="muted">счетов ${s.accounts}, бумаг ${s.positions}, новых выплат ${s.payouts}</span></div>`:""}</div>
+    ${e?`<div class="banner">${esc(tinvErrorText(e))}</div>`:""}
+    <div class="toolbar" style="margin-top:0">
+      <button class="btn primary" id="tinv-sync" ${tinvBusy?"disabled":""}>Синхронизировать сейчас</button>
+      <label class="f" style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)"><input type="checkbox" id="tinv-auto" ${tinv.auto!==false?"checked":""}> Обновлять каждые 10 минут, пока сайт открыт</label>
+      <button class="btn ghost" id="tinv-off" style="margin-left:auto">Отключить</button>
+    </div></div>`:""}
+  <form class="addform" id="tinv-form" ${on?"":'style="border-top:0;margin-top:0;padding-top:0"'}>
+    <label class="f" style="flex:1 1 320px">${on?"Заменить токен":"Токен API (только для чтения)"}<input id="tinv-token" type="password" autocomplete="off" spellcheck="false" placeholder="t.xxxxxxxxxxxxxxxxxxxxxxxx" style="width:100%"></label>
+    <button class="btn primary" type="submit">${on?"Сохранить":"Подключить"}</button>
+  </form>
+  <p class="note">Где взять токен: <a href="https://www.tbank.ru/invest/settings/api/" target="_blank" rel="noopener">настройки Т-Инвестиций → Токены T-Invest API</a> → «Создать токен» → <b>только для чтения</b>, доступ ко всем счетам. Таким токеном нельзя торговать и выводить деньги. Токен хранится только в этом браузере, не попадает в экспорт и в репозиторий и отправляется только в Т-Инвестиции${tinv.proxy?" через ваш прокси":""}.</p>
+  <p class="note">Что подтягивается: брокерский счёт и ИИС (стоимость бумаг и свободные деньги), бумаги с количеством, текущей стоимостью и средней ценой покупки, купоны и дивиденды с даты открытия счёта. Решения «держать / продать» и блоки «штанги» сохраняются. Если раньше вносили выплаты Т-Банка вручную, удалите их во вкладке «Выплаты», чтобы не задвоились.</p>
+  <details ${e&&e.kind==="blocked"?"open":""} style="margin-top:12px"><summary style="cursor:pointer;font-weight:500">Если браузер не пускает запросы: прокси на Cloudflare</summary>
+    <ol style="margin:10px 0;padding-left:20px;display:grid;gap:6px;max-width:70ch">
+      <li>Зайдите на <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">dash.cloudflare.com</a> (бесплатный аккаунт) → Workers & Pages → Create → Worker. Назовите, например, <code>capital-proxy</code>, нажмите Deploy.</li>
+      <li>Edit code → удалите всё → вставьте код ниже → Deploy.</li>
+      <li>Скопируйте адрес вида <code>https://capital-proxy.ваше-имя.workers.dev</code> и вставьте в поле ниже.</li>
+    </ol>
+    <div style="position:relative"><pre id="proxy-code" style="background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:12px;max-height:320px">${esc(proxyCode())}</pre>
+    <button class="btn" id="proxy-copy" type="button" style="position:absolute;top:8px;right:8px">Копировать</button></div>
+    <form class="addform" id="proxy-form"><label class="f" style="flex:1 1 320px">Адрес прокси (пусто — напрямую)<input id="tinv-proxy" value="${esc(tinv.proxy||"")}" placeholder="https://capital-proxy.ваше-имя.workers.dev" style="width:100%"></label>
+    <button class="btn" type="submit">Сохранить адрес</button></form>
+  </details></div>
+  <div class="panel"><h2>ВТБ Инвестиции и Инвестпалата <span class="sub">открытого API для частных клиентов нет</span></h2>
+  <p class="note" style="margin-top:0">Обновляйте их из файла: кнопка «Портфель из файла» вверху принимает выгрузку бумаг в CSV или Excel и обновляет позиции в выбранном счёте. Суммы счетов можно поправить во вкладке «Счета».</p></div>`;
+}
+function renderConnLive(){const el=document.getElementById("tinv-sync");if(el){el.disabled=tinvBusy;el.textContent=tinvBusy?"Обновляю…":"Синхронизировать сейчас"}}
+function bindConnect(){
+  const f=document.getElementById("tinv-form"); if(f) f.addEventListener("submit",e=>{e.preventDefault();
+    const v=document.getElementById("tinv-token").value.trim(); if(!v) return;
+    tinv.token=v; tinv.lastError=null; tinv.opsFrom={}; if(tinv.auto==null) tinv.auto=true; saveTinv(); tinvSchedule(); render(); tinvSync(true)});
+  const sb=document.getElementById("tinv-sync"); if(sb) sb.onclick=()=>tinvSync(true);
+  const au=document.getElementById("tinv-auto"); if(au) au.onchange=()=>{tinv.auto=au.checked;saveTinv();tinvSchedule()};
+  const off=document.getElementById("tinv-off"); if(off) off.onclick=()=>{
+    if(!off.classList.contains("armed")){off.classList.add("armed");off.textContent="Отключить? Нажмите ещё раз";setTimeout(()=>{if(off.isConnected){off.classList.remove("armed");off.textContent="Отключить"}},3000);return}
+    delete tinv.token; tinv.lastError=null; saveTinv(); tinvSchedule(); render(); toast("Токен удалён из браузера. Загруженные данные остались.")};
+  const pf=document.getElementById("proxy-form"); if(pf) pf.addEventListener("submit",e=>{e.preventDefault();
+    tinv.proxy=document.getElementById("tinv-proxy").value.trim(); saveTinv(); toast(tinv.proxy?"Адрес прокси сохранён":"Прокси выключен: запросы идут напрямую"); if(tinv.token) tinvSync(true); else render()});
+  const pc=document.getElementById("proxy-copy"); if(pc) pc.onclick=()=>{const t=proxyCode();
+    const ok=()=>{pc.textContent="Скопировано";setTimeout(()=>{if(pc.isConnected)pc.textContent="Копировать"},1500)};
+    try{navigator.clipboard.writeText(t).then(ok,()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("proxy-code"));const s=getSelection();s.removeAllRanges();s.addRange(r)})}catch(e){}};
+}
+
 // ---------- modal, toast, file import, calculator ----------
 let modalBack=null;
 function openModal(html){closeModal();modalBack=document.createElement("div");modalBack.className="modal-back";
@@ -1034,7 +1228,7 @@ function bind(){
     const ex=state.months.find(m=>m.id===id);
     if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
     else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
-  bindNew();
+  bindNew(); bindConnect();
   const sc=document.getElementById("s-contrib"); if(sc){
     sc.addEventListener("input",()=>saveSettings({contribution:num(sc.value)}));
     document.getElementById("s-rate").addEventListener("input",e=>saveSettings({rate:num(e.target.value)}));
@@ -1060,9 +1254,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 render();
 (async()=>{
   try{ db = window.claude && window.claude.use ? await window.claude.use("db") : null }catch(e){ db=null }
-  if(!db){ loadLocal(); purgeLegacyAccounts(); state.loaded=true; persistOK=false; render(); return }
+  if(!db){ loadLocal(); purgeLegacyAccounts(); state.loaded=true; persistOK=false; render(); tinvBoot(); return }
   persistOK=true; let first={settings:false}; COLLS.forEach(c=>first[c]=false);
-  const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;purgeLegacyAccounts();render()}else if(state.loaded)schedule()};
+  const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;purgeLegacyAccounts();render();tinvBoot()}else if(state.loaded)schedule()};
   db.doc("settings/main").onSnapshot(s=>{if(s.exists)Object.assign(state.settings,s.data());state.demo=false;first.settings=true;ready()},()=>{first.settings=true;ready()});
   for(const c of COLLS){
     db.collection(c).onSnapshot(snap=>{
@@ -1070,7 +1264,7 @@ render();
       state[c]=snap.docs.map(d=>{const loc=state[c].find(x=>x.id===d.id);return timers[c+d.id]&&loc?loc:{id:d.id,...d.data()}});
       first[c]=true; ready()},e=>{first[c]=true;ready();err(e)});
   }
-  setTimeout(()=>{if(!state.loaded){state.loaded=true;purgeLegacyAccounts();render()}},8000);
+  setTimeout(()=>{if(!state.loaded){state.loaded=true;purgeLegacyAccounts();render();tinvBoot()}},8000);
 })();
 })();
 </script>
