@@ -13,18 +13,22 @@
   --display:"Unbounded","Golos Text",system-ui,sans-serif;
   --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
   --r:10px;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s0:#B9C3CC; --s4-ink:#0b0b0b; --s0-ink:#16222E;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0F151B; --surface:#17202A; --surface2:#1D2833; --line:#2A3744;
   --ink:#E6ECF1; --muted:#9AA8B5; --faint:#6F7E8C;
   --accent:#6FA8DA; --accent-soft:#1E3346; --brass:#D9A24A;
-  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark}}
+  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#4A5866; --s4-ink:#ffffff; --s0-ink:#E6ECF1}}
 :root[data-theme="dark"]{
   --bg:#0F151B; --surface:#17202A; --surface2:#1D2833; --line:#2A3744;
   --ink:#E6ECF1; --muted:#9AA8B5; --faint:#6F7E8C;
   --accent:#6FA8DA; --accent-soft:#1E3346; --brass:#D9A24A;
-  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark}
+  --up:#4FC184; --up-soft:#173024; --down:#EE7166; --down-soft:#3A1E1C; --warn:#E3A84A; --warn-soft:#3A2C14; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s0:#4A5866; --s4-ink:#ffffff; --s0-ink:#E6ECF1}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -36,7 +40,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .hstat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .hstat b{font-size:18px;font-weight:600}
 nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
-nav button{border:0;background:transparent;color:var(--muted);font:500 14px var(--body);padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav button{border:0;background:transparent;color:var(--muted);font:500 14px var(--body);padding:8px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
 nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-block:20px 48px;display:grid;gap:18px}
@@ -105,13 +109,58 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
 .modal-card .muted{margin:0 0 12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
-@media (prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}}
+/* live sync pill in the header */
+.sync{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);font:500 12px var(--body);padding:5px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;max-width:100%}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--up);flex:none}
+.sync b{font-weight:600;color:var(--ink)}
+.sync.busy i{background:var(--accent)}
+.sync.stale i{background:var(--warn)}
+.sync.err{color:var(--down);background:var(--down-soft);border-color:transparent}
+.sync.err i{background:var(--down)}
+/* hero: monthly contribution */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px;align-items:start;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}}
+.cap{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.big{display:flex;align-items:baseline;gap:8px;margin:6px 0 12px}
+.big input{font:500 34px var(--display);letter-spacing:-.02em;width:100%;max-width:300px;text-align:left;padding:6px 12px;border-radius:9px}
+.big span{font:500 22px var(--display);color:var(--muted)}
+.hero input[type=range]{width:100%;max-width:420px;accent-color:var(--accent);padding:0;border:0;background:transparent;display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chips .btn{padding:5px 10px;font-size:12px}
+.hgoals{display:grid;gap:10px}
+.hgoal{border:1px solid var(--line);border-radius:9px;padding:12px 14px;display:grid;gap:3px;background:var(--surface)}
+.hgoal b{font:500 22px var(--display);letter-spacing:-.02em}
+.hgoal .d{font-size:13px;font-weight:500}
+.hsum{font-size:13px;color:var(--muted);margin:2px 0 0}
+/* field hints */
+.fh{max-width:220px}
+.hint{font-size:11px;color:var(--faint);line-height:1.35}
+.lead{font-size:15px;line-height:1.55;margin:0;max-width:80ch}
+details>summary{cursor:pointer}
+/* part-to-whole bar */
+.segbar{display:flex;gap:2px;height:28px;margin:4px 0 14px}
+.segbar span{display:flex;align-items:center;padding-left:7px;border-radius:4px;font:600 12px var(--body);white-space:nowrap;min-width:0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px;flex:none}
+.meter{height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.src{font-size:12px;color:var(--muted)}
+.share{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.share .meter{width:64px;margin:0;flex:none}
+.share span{min-width:40px;text-align:right}
+main a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}
+  .sync.busy i{animation:pulse 1s ease-in-out infinite}
+  .flash{animation:flash 1.8s ease}}
+@keyframes pulse{50%{opacity:.25}}
+@keyframes flash{0%{background:var(--accent-soft);box-shadow:0 0 0 4px var(--accent-soft)}100%{background:transparent;box-shadow:0 0 0 4px transparent}}
+.hstat b{border-radius:5px}
 </style>
 
 <header>
   <div class="wrap">
     <div class="top">
       <div class="brand">Капитал <span>→ 40 млн</span></div>
+      <button class="sync" id="h-sync" type="button" hidden title="Открыть «Подключения»"><i></i><span id="h-sync-t">Т-Банк</span></button>
       <div class="hstat"><small>Чистый капитал</small><b id="h-nw">—</b></div>
       <div class="hstat"><small>Ликвидно</small><b id="h-liq">—</b></div>
       <div class="hstat"><small>Пассив / мес</small><b id="h-pass">—</b></div>
@@ -125,6 +174,7 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
     </div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
+      <button role="tab" data-tab="portfolio" aria-selected="false">Портфель</button>
       <button role="tab" data-tab="income" aria-selected="false">Пассив и дивиденды</button>
       <button role="tab" data-tab="plans" aria-selected="false">Планы</button>
       <button role="tab" data-tab="accounts" aria-selected="false">Счета</button>
@@ -161,6 +211,7 @@ const DEFAULT_SETTINGS={contribution:200000,rate:17,base:"liquid",goalIncome:300
 const COLLS=["accounts","positions","payouts","months","plans","tasks","qual"];
 const state={settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),accounts:[],positions:[],payouts:[],months:[],plans:[],tasks:[],qual:[],loaded:false,demo:false};
 let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
+let heroBase=null; // contribution and rate when the data was opened — what the hero's "раньше / позже" compares against
 
 // ---------- formatting ----------
 const nf=new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0});
@@ -197,7 +248,7 @@ const monthsLabel=m=>{if(m==null)return "дальше 20 лет";const d=new Dat
 // ---------- storage ----------
 const LS="kapital-local-v1";
 function snapshot(){const o={settings:state.settings};for(const c of COLLS)o[c]=state[c];return o}
-function applyData(d){if(d.settings)state.settings={...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),...d.settings};for(const c of COLLS)if(Array.isArray(d[c]))state[c]=d[c]}
+function applyData(d){heroBase=null;if(d.settings)state.settings={...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),...d.settings};for(const c of COLLS)if(Array.isArray(d[c]))state[c]=d[c]}
 function saveLocal(){if(persistOK)return;state.demo=false;try{localStorage.setItem(LS,JSON.stringify(snapshot()))}catch(e){}}
 function loadLocal(){
   try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){applyData(s);return true}}catch(e){}
@@ -226,6 +277,11 @@ function add(coll,body){
   if(db) db.collection(coll).doc(id).set(body).catch(err); else saveLocal();
   render();
 }
+function removeMany(coll,ids){const set=new Set(ids);
+  state[coll]=state[coll].filter(x=>!set.has(x.id));
+  if(db) for(const id of set) db.collection(coll).doc(id).delete().catch(err); else saveLocal();
+  render();
+}
 function remove(coll,id){
   state[coll]=state[coll].filter(x=>x.id!==id);
   if(db) db.collection(coll).doc(id).delete().catch(err); else saveLocal();
@@ -243,21 +299,32 @@ main.addEventListener("focusout",()=>setTimeout(()=>{if(pendingRender&&!isEditin
 function schedule(){if(isEditing()){pendingRender=true;renderHeader()}else render()}
 
 function renderHeader(){const t=totals();
-  document.getElementById("h-nw").textContent=mln(t.nw);
-  document.getElementById("h-liq").textContent=mln(t.liquid);
-  document.getElementById("h-pass").textContent=rub(t.passive);}
+  for(const [id,v] of [["h-nw",mln(t.nw)],["h-liq",mln(t.liquid)],["h-pass",rub(t.passive)]]){
+    const el=document.getElementById(id); if(el.textContent===v) continue;
+    const was=el.textContent; el.textContent=v;
+    // a short highlight shows that a number has just changed (e.g. after a broker refresh)
+    if(was!=="—"&&state.loaded){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash")}
+  }
+  syncPill();}
 
 function render(){
   renderHeader();
+  // keep expanded <details> open: the page re-renders when fresh broker data arrives
+  const dOpen=new Set([...main.querySelectorAll("details[id][open]")].map(d=>d.id));
   const banner=`<div class="banner" id="banner" hidden></div>`+(persistOK||!state.loaded?"":`<div class="banner" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json. ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
-  main.innerHTML=banner+views[tab]();
+  const views={overview,portfolio,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
+  main.innerHTML=banner+(views[tab]||overview)();
+  main.querySelectorAll("details[id]").forEach(d=>{if(dOpen.has(d.id))d.open=true});
   bind();
   if(tab==="overview") renderOverviewLive();
+  // part-to-whole bar: drop a share label that does not fit its block
+  main.querySelectorAll(".segbar span").forEach(x=>{if(x.scrollWidth>x.clientWidth+1)x.textContent=""});
 }
+function setTab(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
+  try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0})}
 
 // ----- Overview -----
 function overview(){
@@ -270,7 +337,7 @@ function overview(){
   const byAcc=state.accounts.filter(a=>a.kind!=="debt").map(a=>({n:a.name,k:a.kind,v:num(a.value)+num(a.cash)})).sort((a,b)=>b.v-a.v);
   const maxA=Math.max(1,...byAcc.map(a=>a.v));
   const baseLabel=s.base==="all"?"весь капитал без машины":"ликвидный портфель";
-  return `
+  return `${heroHTML(avgSave)}
   <section class="grid kpis">
     <div class="panel kpi"><small>Чистый капитал</small><div class="v">${mln(t.nw)}</div><div class="n">активы ${mln(t.assets)} · долги ${mln(t.debts)}</div></div>
     <div class="panel kpi"><small>Ликвидный портфель</small><div class="v">${mln(t.liquid)}</div><div class="n">брокеры, ИИС, деньги</div></div>
@@ -282,9 +349,7 @@ function overview(){
       <h2>Путь к 40 млн <span class="sub">база: ${baseLabel} — ${mln(t.goalBase)}</span></h2>
       <div class="scen">
         <label class="f">Считать цель от<select id="s-base"><option value="liquid" ${s.base!=="all"?"selected":""}>Ликвидный портфель</option><option value="all" ${s.base==="all"?"selected":""}>Весь капитал без машины</option></select></label>
-        <label class="f">Пополнение в месяц, ₽<input id="s-contrib" type="number" step="10000" value="${s.contribution}"></label>
-        <label class="f">Доходность, % годовых<input id="s-rate" type="number" step="0.5" value="${s.rate}"></label>
-        ${avgSave!=null?`<button class="btn" id="s-usebudget">Взять из бюджета: ${k(avgSave)}</button>`:""}
+        <span class="muted" style="font-size:12px;padding-bottom:7px">Пополнение и доходность — в блоке «Пополнение в месяц» вверху.</span>
       </div>
       <div id="goals"></div>
       <div id="proj"></div>
@@ -293,7 +358,7 @@ function overview(){
     </div>
     <div class="grid" style="align-content:start">
       <div class="panel">
-        <h2>Где лежат деньги</h2>
+        <h2>Где лежат деньги <button class="btn" data-goto="portfolio" style="margin-left:auto;padding:4px 10px;font-size:12px">Весь портфель →</button></h2>
         ${byAcc.length?`<div class="alloc">${byAcc.map(a=>`<div class="row"><span>${esc(a.n)} <span class="muted">· ${KIND_LABEL[a.k]||""}</span></span><b>${mln(a.v)}</b><div class="bar"><i style="width:${(a.v/maxA*100).toFixed(1)}%" class="${LIQUID.includes(a.k)?"":"brass"}"></i></div></div>`).join("")}</div>`:`<div class="empty">Добавьте счета во вкладке «Счета и имущество»</div>`}
         <div class="legend"><span><i style="background:var(--accent)"></i>ликвидное</span><span><i style="background:var(--brass)"></i>имущество</span></div>
       </div>
@@ -309,6 +374,7 @@ function overview(){
   </section>`;
 }
 function renderOverviewLive(){
+  renderHero();
   const g=document.getElementById("goals"); if(!g) return;
   const t=totals(), s=state.settings;
   const goals=LADDER.map(v=>({n:(v/1e6)+" млн",v}));
@@ -324,6 +390,44 @@ function renderOverviewLive(){
   document.getElementById("proj").innerHTML=projChart(pr.pts,goals.filter(x=>x.v>t.goalBase||x.v===40e6));
   const lv=document.getElementById("levers");
   if(lv){lv.innerHTML=leversHTML(40e6);bindApplies(lv)}
+}
+// ----- Hero: monthly contribution and how it moves the goals -----
+const dateLabel=m=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+m);return d.toLocaleDateString("ru-RU",{month:"long",year:"numeric"}).replace(/ г\.$/,"")};
+function heroHTML(avgSave){
+  const s=state.settings, c=num(s.contribution);
+  if(!heroBase) heroBase={c,r:num(s.rate)};
+  return `<section class="panel hero" aria-label="Пополнение в месяц и сроки целей">
+    <div>
+      <label class="cap" for="h-c">Пополнение в месяц</label>
+      <div class="big"><input id="h-c" inputmode="numeric" autocomplete="off" value="${nf.format(c)}"><span>₽</span></div>
+      <input id="h-range" type="range" min="0" max="${Math.max(1e6,c)}" step="5000" value="${c}" aria-label="Пополнение в месяц, ползунок">
+      <div class="chips">${[-50000,-10000,10000,50000].map(d=>`<button class="btn" type="button" data-dc="${d}">${d>0?"+":"−"}${nf.format(Math.abs(d))}</button>`).join("")}
+        ${avgSave!=null?`<button class="btn" type="button" id="h-budget" title="Средняя сумма «Отложено» за последние 6 месяцев из вкладки «Бюджет»">Из бюджета: ${k(avgSave)}</button>`:""}
+        <button class="btn" type="button" id="h-reset" ${c===heroBase.c&&num(s.rate)===heroBase.r?"hidden":""}>Вернуть ${nf.format(heroBase.c)} ₽</button></div>
+      <p class="note" style="margin-top:10px">Сколько докладываете в портфель каждый месяц — например, часть зарплаты. Меняйте сумму — сразу видно, на сколько цели приближаются или отдаляются.</p>
+      <label class="f" style="margin-top:12px;max-width:240px">Доходность портфеля, % годовых<input id="s-rate" type="number" step="0.5" value="${num(s.rate)}" style="width:110px"><span class="hint">средний рост в год вместе с выплатами</span></label>
+    </div>
+    <div><div id="hero-out" class="hgoals"></div></div>
+  </section>`;
+}
+function renderHero(){
+  const out=document.getElementById("hero-out"); if(!out) return;
+  const t=totals(), s=state.settings, c=num(s.contribution), r=num(s.rate), g=num(s.divGrowth);
+  const changed=c!==heroBase.c||r!==heroBase.r, was=`${nf.format(heroBase.c)} ₽${r!==heroBase.r?" и "+String(heroBase.r).replace(".",",")+"%":""}`;
+  const delta=(m,m0)=>!changed||m==null||m0==null||m===m0?(changed&&m===m0?`<span class="d muted">срок не изменился</span>`:"")
+    :`<span class="d ${m<m0?"up":"down"}">${m<m0?"на "+durLabel(m0-m)+" раньше":"на "+durLabel(m-m0)+" позже"}, чем при ${was}</span>`;
+  const card=(label,m,m0,cap)=>`<div class="hgoal"><span class="cap">${label}</span><b>${m==null?"дальше "+(cap||20)+" лет":dateLabel(m)}</b>
+    <span class="muted">${m==null?"увеличьте пополнение или доходность":m===0?"уже сейчас":"через "+durLabel(m)}</span>${delta(m,m0)}</div>`;
+  const next=LADDER.find(v=>v>t.goalBase), T=[...new Set([next,40e6].filter(v=>v&&v>t.goalBase))];
+  const now=project(t.goalBase,t.liquid,c,r,T).hit, base=project(t.goalBase,t.liquid,heroBase.c,heroBase.r,T).hit;
+  const hp=hitIncome(g,c), hp0=hitIncome(g,heroBase.c);
+  let html=T.length?T.map(v=>card(v===next&&v!==40e6?`Следующий этап · ${v/1e6} млн`:"Главная цель · 40 млн",now[v],base[v])).join("")
+    :`<div class="hgoal"><span class="cap">Главная цель · 40 млн</span><b>достигнута</b></div>`;
+  html+=card(`Пассив ${nf.format(num(s.goalIncome))} ₽ в месяц`,hp,hp0,30);
+  if(T.includes(40e6)&&now[40e6]!=null){const m10=project(t.goalBase,t.liquid,c+10000,r,[40e6]).hit[40e6];
+    if(m10!=null&&now[40e6]-m10>0) html+=`<p class="hsum">Каждые +10 000 ₽ в месяц приближают 40 млн примерно на ${durLabel(now[40e6]-m10)}.</p>`}
+  out.innerHTML=html;
+  const rs=document.getElementById("h-reset"); if(rs){rs.hidden=!changed}
 }
 function projChart(pts,goals){
   const W=640,H=230,pl=56,pr=12,pt=12,pb=26;
@@ -404,23 +508,88 @@ function openGoalModal(T){
   document.getElementById("gm-close").onclick=closeModal;
 }
 
+// ----- Portfolio: what I own, where, and how it is split -----
+const CLASSES=[{k:"bond",n:"Облигации",c:"var(--s1)",ink:"#fff"},{k:"share",n:"Акции",c:"var(--s2)",ink:"#fff"},{k:"fund",n:"Фонды и ЗПИФ",c:"var(--s3)",ink:"#fff"},
+  {k:"cash",n:"Свободные деньги",c:"var(--s4)",ink:"var(--s4-ink)"},{k:"other",n:"Прочее",c:"var(--s5)",ink:"#fff"},{k:"none",n:"Не разнесено по бумагам",c:"var(--s0)",ink:"var(--s0-ink)"}];
+let pfClass="all";
+const clsOf=p=>p.kind==="bond"||p.kind==="share"||p.kind==="fund"?p.kind:"other";
+function pfData(){
+  const accs=state.accounts.filter(a=>LIQUID.includes(a.kind)), ids=new Set(accs.map(a=>a.id));
+  const held=state.positions.filter(p=>num(p.value)>0&&(!p.account||ids.has(p.account)));
+  const sum={bond:0,share:0,fund:0,cash:0,other:0,none:0}, cnt={bond:0,share:0,fund:0,other:0};
+  for(const p of held){sum[clsOf(p)]+=num(p.value);cnt[clsOf(p)]++}
+  const rows=accs.map(a=>{const inPos=held.filter(p=>p.account===a.id).reduce((x,p)=>x+num(p.value),0);
+    return {a,inPos,un:Math.max(0,num(a.value)-inPos),cash:num(a.cash),total:num(a.value)+num(a.cash)}}).sort((x,y)=>y.total-x.total);
+  for(const r of rows){sum.cash+=r.cash;sum.none+=r.un}
+  const whole=Object.values(sum).reduce((x,v)=>x+v,0);
+  const wc=held.filter(p=>num(p.cost)>0), inv=wc.reduce((x,p)=>x+num(p.cost),0), pnl=wc.reduce((x,p)=>x+num(p.value)-num(p.cost),0);
+  const empty=state.positions.filter(p=>!num(p.value)&&!p.sold&&!(p.tuid&&!num(p.qty))).length;
+  return {accs,held,sum,cnt,rows,whole,inv,pnl,empty};
+}
+function srcCell(a){
+  if(isAuto(a)) return `<span class="pill buy">авто</span> <span class="src">Т-Банк · ${a.synced?agoShort(Date.parse(a.synced)):"ещё не обновлялся"}</span>`;
+  return `<span class="pill hold">вручную</span> <span class="src">${a.updated?"обновлено "+new Date(a.updated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"}):a.note?esc(a.note):"дата не указана"}</span>`;
+}
+function portfolio(){
+  const t=totals(), d=pfData(), W=Math.max(1,d.whole);
+  const pct=v=>{const x=v/W*100;return (x>0&&x<0.1?"<0,1":x.toLocaleString("ru-RU",{maximumFractionDigits:x<10?1:0}))+"%"};
+  const cash=d.sum.cash, inPapers=t.liquid-cash, auto=state.accounts.filter(isAuto).length;
+  const parts=CLASSES.filter(c=>d.sum[c.k]>0);
+  const top=[...d.held].sort((a,b)=>num(b.value)-num(a.value)), top5=top.slice(0,5).reduce((x,p)=>x+num(p.value),0);
+  let list=top; if(pfClass!=="all") list=list.filter(p=>clsOf(p)===pfClass);
+  const accName=id=>(state.accounts.find(a=>a.id===id)||{}).name||"без счёта";
+  const swatch=k=>{const c=CLASSES.find(x=>x.k===k);return `<i class="sw" style="background:${c.c}"></i>`};
+  const filters=[["all","Все"],...CLASSES.filter(c=>d.cnt[c.k]).map(c=>[c.k,c.n])];
+  return `<section class="grid kpis">
+    <div class="panel kpi"><small>Всего на счетах</small><div class="v">${mln(t.liquid)}</div><div class="n">${d.accs.length} ${d.accs.length===1?"счёт":d.accs.length<5?"счёта":"счетов"}${auto?` · Т-Банк обновляется сам`:""}</div></div>
+    <div class="panel kpi"><small>В бумагах</small><div class="v">${mln(inPapers)}</div><div class="n">${d.held.length} ${d.held.length%10===1&&d.held.length%100!==11?"бумага":[2,3,4].includes(d.held.length%10)&&![12,13,14].includes(d.held.length%100)?"бумаги":"бумаг"} · ${pct(inPapers)} портфеля</div></div>
+    <div class="panel kpi"><small>Свободные деньги</small><div class="v">${mln(cash)}</div><div class="n">${pct(cash)} портфеля, можно вложить</div></div>
+    <div class="panel kpi"><small>Результат по бумагам</small><div class="v ${d.pnl>=0?"up":"down"}">${d.inv?signed(d.pnl):"—"}</div><div class="n">${d.inv?`${d.pnl>=0?"+":"−"}${Math.abs(d.pnl/d.inv*100).toLocaleString("ru-RU",{maximumFractionDigits:1})}% к вложенным ${mln(d.inv)}`:"нет цены покупки"}</div></div>
+    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub(t.passive)}</div><div class="n">в месяц, по выплатам за 12 мес · <a href="#" data-goto="income">подробнее</a></div></div>
+  </section>
+  <div class="panel"><h2>Из чего состоит портфель <span class="sub">${mln(d.whole)} — бумаги по видам, свободные деньги и суммы счетов без разбивки</span></h2>
+    ${parts.length?`<div class="segbar" role="img" aria-label="${parts.map(c=>c.n+" "+pct(d.sum[c.k])).join(", ")}">${parts.map(c=>`<span style="flex:${d.sum[c.k]} 1 0;background:${c.c};color:${c.ink}" title="${c.n}: ${rub(d.sum[c.k])} · ${pct(d.sum[c.k])}">${pct(d.sum[c.k])}</span>`).join("")}</div>
+    <div class="tablewrap"><table><thead><tr><th>Вид</th><th class="num">Бумаг</th><th class="num">Сумма</th><th class="num">Доля</th></tr></thead><tbody>
+    ${parts.map(c=>`<tr><td>${swatch(c.k)}${c.n}${c.k==="none"?` <span class="muted" style="font-size:12px">— у счёта есть сумма, но бумаги в нём не внесены</span>`:""}</td><td class="num">${c.k in d.cnt?d.cnt[c.k]:"—"}</td><td class="num">${rub(d.sum[c.k])}</td><td class="num">${pct(d.sum[c.k])}</td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="empty">Добавьте счета и бумаги — здесь появится разбивка портфеля.</div>`}
+    ${Math.abs(d.whole-t.liquid)>Math.max(1000,t.liquid*0.01)?`<p class="note">Сумма бумаг больше суммы некоторых счетов на ${rub(Math.abs(d.whole-t.liquid))} — обновите суммы во вкладке «Счета» или укажите счёт у бумаг во вкладке «Бумаги».</p>`:""}
+  </div>
+  <div class="panel"><h2>Где лежат деньги <span class="sub">по счетам и откуда цифры</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>Счёт</th><th>Откуда цифры</th><th class="num">В бумагах</th><th class="num">Деньги</th><th class="num">Итого</th><th class="num">Доля</th></tr></thead><tbody>
+    ${d.rows.map(r=>`<tr><td><b>${esc(r.a.name)}</b> <span class="muted">· ${KIND_LABEL[r.a.kind]||""}</span></td><td>${srcCell(r.a)}</td>
+      <td class="num">${rub(num(r.a.value))}</td><td class="num">${rub(r.cash)}</td><td class="num"><b>${rub(r.total)}</b></td><td class="num"><div class="share"><div class="meter"><i style="width:${Math.min(100,r.total/W*100).toFixed(1)}%"></i></div><span>${pct(r.total)}</span></div></td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="2">Итого</td><td class="num">${rub(inPapers)}</td><td class="num">${rub(cash)}</td><td class="num">${rub(t.liquid)}</td><td></td></tr></tfoot></table></div>
+  </div>
+  <div class="panel"><h2>Чем владею <span class="sub">${d.held.length?`крупнейшая бумага — ${esc(top[0].name)}: ${pct(num(top[0].value))} портфеля${top.length>5?` · 5 крупнейших — ${pct(top5)}`:""}`:"бумаг с текущей стоимостью пока нет"}</span></h2>
+    ${d.held.length?`<div class="seg" role="group" aria-label="Вид бумаг">${filters.map(([v,l])=>`<button data-pc="${v}" aria-pressed="${pfClass===v}">${l}</button>`).join("")}</div>
+    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Счёт</th><th class="num">Кол-во</th><th class="num">Стоит</th><th class="num">Доля</th><th class="num">Результат</th><th>Решение</th></tr></thead><tbody>
+    ${list.map(p=>{const c=num(p.cost),v=num(p.value),r=v-c;return `<tr><td style="min-width:180px">${swatch(clsOf(p))}${esc(p.name)} <span class="muted">${esc(p.ticker)}</span></td>
+      <td class="muted">${esc(accName(p.account))}</td><td class="num">${num(p.qty)?nf.format(num(p.qty)):"—"}</td><td class="num">${rub(v)}</td>
+      <td class="num"><div class="share"><div class="meter"><i style="width:${(v/Math.max(1,num(top[0].value))*100).toFixed(1)}%"></i></div><span>${pct(v)}</span></div></td>
+      <td class="num ${c?r>=0?"up":"down":"muted"}">${c?`${signed(r)}<br><small>${r>=0?"+":"−"}${Math.abs(r/c*100).toLocaleString("ru-RU",{maximumFractionDigits:1})}%</small>`:"—"}</td>
+      <td><span class="pill ${p.verdict in VERDICT?p.verdict:"hold"}">${VERDICT[p.verdict]||"Держать"}</span></td></tr>`}).join("")}
+    </tbody><tfoot><tr><td colspan="3">${pfClass==="all"?"Все бумаги":esc((CLASSES.find(c=>c.k===pfClass)||{}).n||"")}</td><td class="num">${rub(list.reduce((x,p)=>x+num(p.value),0))}</td><td class="num">${pct(list.reduce((x,p)=>x+num(p.value),0))}</td><td colspan="2"></td></tr></tfoot></table></div>`:""}
+    <p class="note">Доля — от всего портфеля (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Результат — разница между текущей стоимостью и ценой покупки${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}.${d.empty?` Ещё ${d.empty} ${d.empty===1?"бумага":"бумаг"} без текущей стоимости не показаны — заполните «Стоит сейчас» во вкладке «Бумаги».`:""} Решения меняются во вкладке «Бумаги».</p>
+  </div>`;
+}
+
 // ----- Accounts -----
 function accounts(){
   const rows=[...state.accounts].sort((a,b)=>(a.order||0)-(b.order||0));
   const t=totals();
   return `<div class="panel"><h2>Счета, имущество и долги <span class="sub">обновляйте суммы раз в неделю или месяц из приложений брокеров</span></h2>
   ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Название</th><th>Тип</th><th class="num">Стоимость бумаг / оценка, ₽</th><th class="num">Свободные деньги, ₽</th><th class="num">Итого</th><th>Заметка</th><th></th></tr></thead><tbody>
-  ${rows.map(a=>`<tr data-coll="accounts" data-id="${a.id}">
+  ${rows.map(a=>{const au=isAuto(a);return `<tr data-coll="accounts" data-id="${a.id}">
     <td><input data-f="name" value="${esc(a.name)}" aria-label="Название"></td>
     <td><select data-f="kind" aria-label="Тип">${Object.entries(KIND_LABEL).map(([v,l])=>`<option value="${v}" ${a.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
-    <td class="num"><input data-f="value" type="number" step="1000" value="${num(a.value)}" aria-label="Стоимость"></td>
-    <td class="num">${a.kind==="debt"||a.kind==="property"||a.kind==="car"?`<span class="muted">—</span>`:`<input data-f="cash" type="number" step="100" value="${num(a.cash)}" aria-label="Деньги">`}</td>
+    <td class="num">${au?`<span title="Обновляется из Т-Банка каждую минуту">${rub(num(a.value))}</span>`:`<input data-f="value" type="number" step="1000" value="${num(a.value)}" aria-label="Стоимость">`}</td>
+    <td class="num">${au?rub(num(a.cash)):a.kind==="debt"||a.kind==="property"||a.kind==="car"?`<span class="muted">—</span>`:`<input data-f="cash" type="number" step="100" value="${num(a.cash)}" aria-label="Деньги">`}</td>
     <td class="num ${a.kind==="debt"?"down":""}"><b>${a.kind==="debt"?"−":""}${rub(Math.abs(num(a.value)+num(a.cash)))}</b></td>
-    <td><input data-f="note" value="${esc(a.note)}" aria-label="Заметка"></td>
-    <td><button class="btn ghost" data-del="accounts" data-id="${a.id}" title="Удалить">✕</button></td></tr>`).join("")}
+    <td>${au?srcCell(a):`<input data-f="note" value="${esc(a.note)}" aria-label="Заметка">${a.updated?`<div class="src" style="padding-left:8px">сумма обновлена ${new Date(a.updated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}</div>`:""}`}</td>
+    <td><button class="btn ghost" data-del="accounts" data-id="${a.id}" title="Удалить">✕</button></td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="4">Чистый капитал</td><td class="num">${rub(t.nw)}</td><td colspan="2" class="muted">ликвидно ${rub(t.liquid)}</td></tr></tfoot></table></div>`:`<div class="empty">Счетов пока нет. Добавьте первый: брокерский счёт, ИИС или вклад.</div>`}
   <div class="toolbar">${Object.entries(KIND_LABEL).map(([v,l])=>`<button class="btn" data-addacc="${v}">+ ${l}</button>`).join("")}</div>
-  <p class="note">Дашборд учитывает только ликвидные счета: брокеры, ИИС, деньги, зарубежные счета. Недвижимость, авто и долги в оценку не входят — их рыночная стоимость слишком приблизительна.</p></div>`;
+  <p class="note">Дашборд учитывает только ликвидные счета: брокеры, ИИС, деньги, зарубежные счета. Недвижимость, авто и долги в оценку не входят — их рыночная стоимость слишком приблизительна.${state.accounts.some(isAuto)?" Счета с пометкой «авто» обновляются из Т-Банка сами — их суммы здесь не редактируются.":""}</p></div>`;
 }
 
 // ----- Positions -----
@@ -435,19 +604,19 @@ function positions(){
   return `<div class="panel"><h2>Бумаги во всех счетах <span class="sub">текущая стоимость и сколько вложено берите из приложения брокера</span></h2>
   <div class="seg" role="group" aria-label="Фильтр">${[["all","Все"],["hold","Держать"],["buy","Докупать"],["sell","Продать"],["watch","Решить"]].map(([v,l])=>`<button data-pf="${v}" aria-pressed="${posFilter===v}">${l}</button>`).join("")}</div>
   ${rows.length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Тикер</th><th>Вид</th><th>Счёт</th><th class="num">Вложено, ₽</th><th class="num">Стоит сейчас, ₽</th><th class="num">Результат</th><th>Решение</th><th></th></tr></thead><tbody>
-  ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;return `<tr data-coll="positions" data-id="${p.id}">
+  ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;const au=!!(p.tuid&&tinv.token);return `<tr data-coll="positions" data-id="${p.id}">
     <td style="min-width:170px"><input data-f="name" value="${esc(p.name)}" aria-label="Бумага"></td>
-    <td style="min-width:90px"><input data-f="ticker" value="${esc(p.ticker)}" aria-label="Тикер"></td>
+    <td style="min-width:90px">${au?`<span class="muted">${esc(p.ticker)}</span>`:`<input data-f="ticker" value="${esc(p.ticker)}" aria-label="Тикер">`}</td>
     <td><select data-f="kind" aria-label="Вид">${Object.entries(PKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
-    <td><select data-f="account" aria-label="Счёт"><option value="">—</option>${accs.map(a=>`<option value="${a.id}" ${p.account===a.id?"selected":""}>${esc(a.name)}</option>`).join("")}</select></td>
-    <td class="num" style="min-width:110px"><input data-f="cost" type="number" step="100" value="${num(p.cost)}" aria-label="Вложено"></td>
-    <td class="num" style="min-width:110px"><input data-f="value" type="number" step="100" value="${num(p.value)}" aria-label="Стоимость"></td>
+    <td>${au?`<span class="muted">${esc(accName(p.account))}</span>`:`<select data-f="account" aria-label="Счёт"><option value="">—</option>${accs.map(a=>`<option value="${a.id}" ${p.account===a.id?"selected":""}>${esc(a.name)}</option>`).join("")}</select>`}</td>
+    <td class="num" style="min-width:110px">${au?rub(num(p.cost)):`<input data-f="cost" type="number" step="100" value="${num(p.cost)}" aria-label="Вложено">`}</td>
+    <td class="num" style="min-width:110px">${au?`<span title="Обновляется из Т-Банка каждую минуту">${rub(num(p.value))}</span>`:`<input data-f="value" type="number" step="100" value="${num(p.value)}" aria-label="Стоимость">`}</td>
     <td class="num ${r>=0?"up":"down"}">${num(p.cost)||num(p.value)?`${r>=0?"+":""}${rub(r)}<br><small>${pc>=0?"+":""}${pc.toFixed(1)}%</small>`:"—"}</td>
     <td class="v-cell"><select data-f="verdict" aria-label="Решение">${Object.entries(VERDICT).map(([v,l])=>`<option value="${v}" ${p.verdict===v?"selected":""}>${l}</option>`).join("")}</select></td>
     <td><button class="btn ghost" data-del="positions" data-id="${p.id}" title="Удалить">✕</button></td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="4">Итого ${posFilter==="all"?"":"("+VERDICT[posFilter]+")"}</td><td class="num">${rub(tc)}</td><td class="num">${rub(tv)}</td><td class="num ${tv-tc>=0?"up":"down"}">${tv-tc>=0?"+":""}${rub(tv-tc)}</td><td colspan="2"></td></tr></tfoot></table></div>`:`<div class="empty">Здесь появятся ваши бумаги. Добавьте первую кнопкой ниже.</div>`}
   <div class="toolbar"><button class="btn primary" id="addpos">+ Добавить бумагу</button>
-  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки на «Обзоре».</span></div></div>`;
+  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки во вкладке «Налоги и задачи».${state.positions.some(p=>p.tuid&&tinv.token)?" У бумаг Т-Банка цена, вложено, тикер и счёт обновляются сами; название, вид и решение можно менять.":""}</span></div></div>`;
 }
 
 // ----- Payouts -----
@@ -460,7 +629,7 @@ function payouts(){
   const total=mt.reduce((a,b)=>a+b,0), cur=new Date();
   const years=[...new Set(state.payouts.map(p=>+String(p.month).slice(0,4)).concat([cur.getFullYear()]))].sort();
   const sums={coupon:0,dividend:0,rent:0,other:0}; list.forEach(p=>sums[p.kind in sums?p.kind:"other"]+=num(p.amount));
-  return `<div class="grid kpis">
+  return `${dupBanner()}<div class="grid kpis">
     <div class="panel kpi"><small>Выплаты за ${yr}</small><div class="v">${rub(total)}</div><div class="n">в среднем ${rub(total/12)} / мес</div></div>
     <div class="panel kpi"><small>Купоны</small><div class="v">${rub(sums.coupon)}</div></div>
     <div class="panel kpi"><small>Дивиденды</small><div class="v">${rub(sums.dividend)}</div></div>
@@ -480,10 +649,10 @@ function payouts(){
     <button class="btn primary" type="submit">Добавить выплату</button>
   </form>
   ${list.length?`<details style="margin-top:14px"><summary class="muted" style="cursor:pointer">Все записи за ${yr} (${list.length}) — исправить или удалить</summary>
-  <div class="tablewrap"><table><thead><tr><th>Месяц</th><th>Источник</th><th>Вид</th><th class="num">Сумма, ₽</th><th></th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th>Месяц</th><th>Источник</th><th>Вид</th><th class="num">Сумма, ₽</th><th>Откуда</th><th></th></tr></thead><tbody>
   ${[...list].sort((a,b)=>a.month<b.month?-1:1).map(p=>`<tr data-coll="payouts" data-id="${p.id}"><td><input data-f="month" type="month" value="${p.month}"></td><td><input data-f="name" value="${esc(p.name)}"></td>
   <td><select data-f="kind">${Object.entries(PAYKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
-  <td class="num"><input data-f="amount" type="number" value="${num(p.amount)}"></td><td><button class="btn ghost" data-del="payouts" data-id="${p.id}">✕</button></td></tr>`).join("")}
+  <td class="num"><input data-f="amount" type="number" value="${num(p.amount)}"></td><td class="src">${p.src==="tinvest"?"Т-Банк"+(p.card?", на карту":""):"вручную"}</td><td><button class="btn ghost" data-del="payouts" data-id="${p.id}">✕</button></td></tr>`).join("")}
   </tbody></table></div></details>`:""}
   </div>`;
 }
@@ -542,7 +711,7 @@ function lineChart(series,opts){
   let xt="";const ys=Math.ceil(maxM/12);for(let yr=0;yr<=ys;yr+=Math.max(1,Math.round(ys/6))){const m=yr*12;if(m>maxM)break;xt+=`<text x="${x(m)}" y="${H-6}" text-anchor="middle">${new Date().getFullYear()+yr}</text>`}
   const goal=opts&&opts.goal?`<line x1="${pl}" x2="${W-pr}" y1="${y(opts.goal)}" y2="${y(opts.goal)}" stroke="var(--brass)" stroke-dasharray="4 4"/><text x="${W-pr}" y="${y(opts.goal)-5}" text-anchor="end" style="fill:var(--brass)">${esc(opts.goalLabel||"")}</text>`:"";
   const lines=series.map(s=>`<path d="${s.pts.map((p,i)=>(i?"L":"M")+x(p.m).toFixed(1)+" "+y(p.v).toFixed(1)).join(" ")}" fill="none" stroke="${s.color}" stroke-width="2" ${s.dash?'stroke-dasharray="5 4"':""}/>`).join("");
-  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block;margin-top:10px" role="img" aria-label="${esc(opts&&opts.aria||"График")}">${g}${xt}${goal}${lines}</svg></div>
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;max-width:860px;display:block;margin-top:10px" role="img" aria-label="${esc(opts&&opts.aria||"График")}">${g}${xt}${goal}${lines}</svg></div>
   <div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join("")}</div>`;
 }
 
@@ -553,9 +722,9 @@ function incomeBase(){
   const curYield=V>0&&(D+O)>0?(D+O)/V*100:null;
   return {D,O,V,curYield,divShare:(D+O)>0?D/(D+O):0.3,newYield:num(s.newYield)||12};
 }
-function incomeSim(years,growthPct){
+function incomeSim(years,growthPct,contrib){
   const s=state.settings,b=incomeBase();
-  const gM=Math.pow(1+growthPct/100,1/12), y=b.newYield/100, idx=num(s.indexation)/100, M=num(s.contribution);
+  const gM=Math.pow(1+growthPct/100,1/12), y=b.newYield/100, idx=num(s.indexation)/100, M=contrib!=null?contrib:num(s.contribution);
   let D=b.D,O=b.O,hit=null,total=0,lastYear=0; const pts=[{m:0,v:(D+O)/12}];
   for(let m=1;m<=years*12;m++){
     D*=gM; const inc=(D+O)/12; total+=inc; if(m>years*12-12) lastYear+=inc;
@@ -566,42 +735,78 @@ function incomeSim(years,growthPct){
   }
   return {avg:lastYear/12,total,hit,pts};
 }
-function hitIncome(growthPct){const r=incomeSim(30,growthPct);return r.hit}
+function hitIncome(growthPct,contrib){const r=incomeSim(30,growthPct,contrib);return r.hit}
+// Manual payout records next to the broker's own ones = the same money counted twice
+const manualPayouts=()=>state.payouts.filter(p=>!p.src);
+function payoutDupes(){
+  const syn=state.payouts.filter(p=>p.src==="tinvest"); if(!syn.length) return [];
+  const nm=x=>String(x||"").toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9]/g,"");
+  const same=(a,b)=>{const x=nm(a),y=nm(b);return x.length>2&&y.length>2&&(x===y||x.includes(y)||y.includes(x))};
+  return manualPayouts().filter(p=>syn.some(q=>q.month===p.month&&(same(q.name,p.name)||Math.abs(num(q.amount)-num(p.amount))<=Math.max(2,num(p.amount)*0.03))));
+}
+function dupBanner(){
+  if(!state.payouts.some(p=>p.src==="tinvest")) return "";
+  const man=manualPayouts(); if(!man.length) return "";
+  const d=payoutDupes(), sum=l=>l.reduce((x,p)=>x+num(p.amount),0), dIds=new Set(d.map(p=>p.id));
+  const man12=man.filter(p=>inLast12(p.month));
+  return `<div class="banner" style="display:grid;gap:8px">
+    <div><b>Часть выплат может считаться дважды.</b> Т-Банк сам присылает купоны и дивиденды, а ещё есть ${man.length} ${man.length===1?"выплата":man.length<5?"выплаты":"выплат"}, внесённых вручную, на ${rub(sum(man))}${man12.length?` (за последние 12 месяцев — ${rub(sum(man12))}, они сейчас входят в пассив)`:""}${d.length?`. ${d.length} из них ${d.length%10===1&&d.length%100!==11?"совпадает":"совпадают"} с выплатами Т-Банка по месяцу и бумаге или сумме`:""}. Вручную стоит оставлять только выплаты ВТБ и Инвестпалаты.</div>
+    <div class="toolbar" style="margin-top:0">
+      ${d.length?`<button class="btn" data-dropman="dupes">Удалить совпадающие · ${d.length} на ${rub(sum(d))}</button>`:""}
+      <button class="btn" data-dropman="all">Удалить все ручные · ${man.length} на ${rub(sum(man))}</button>
+    </div>
+    <details id="man-list"><summary>Показать ручные выплаты</summary>
+      <div class="tablewrap" style="margin-top:6px"><table><thead><tr><th>Месяц</th><th>Источник</th><th class="num">Сумма</th><th>Есть у Т-Банка</th></tr></thead><tbody>
+      ${[...man].sort((a,b)=>a.month<b.month?1:-1).map(p=>`<tr><td>${esc(p.month)}</td><td>${esc(p.name)}</td><td class="num">${rub(num(p.amount))}</td><td>${dIds.has(p.id)?"да":"<span class='muted'>не найдено</span>"}</td></tr>`).join("")}
+      </tbody></table></div></details>
+  </div>`;
+}
 function income(){
-  const s=state.settings,b=incomeBase(),H=num(s.horizon)||5,g=num(s.divGrowth);
+  const s=state.settings,b=incomeBase(),H=num(s.horizon)||5,g=num(s.divGrowth),goal=num(s.goalIncome);
   const base=incomeSim(H,0), grow=incomeSim(H,g);
-  const warn=[];
-  if(!b.D) warn.push("В выплатах за последние 12 месяцев нет дивидендов — рост не на что применить. Внесите дивиденды во вкладке «Выплаты».");
-  if(!b.V) warn.push("Ликвидный портфель пустой — заполните счета.");
-  const hb=hitIncome(0), hg=hitIncome(g);
-  return `<section class="grid kpis">
-    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub((b.D+b.O)/12)}</div><div class="n">в мес, по выплатам за 12 мес</div></div>
-    <div class="panel kpi"><small>Дивиденды / купоны и фонды</small><div class="v">${k(b.D)} / ${k(b.O)}</div><div class="n">за 12 мес, ₽</div></div>
-    <div class="panel kpi"><small>Доходность выплат</small><div class="v">${b.curYield==null?"—":b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})+"%"}</div><div class="n">выплаты за год / ликвидный портфель${b.curYield!=null&&b.curYield<8?" — занижена: свободный кэш и не все выплаты внесены":""}</div></div>
-    <div class="panel kpi"><small>Цель по пассиву</small><div class="v">${rub(num(s.goalIncome))}</div><div class="n">${hg?"при текущем сценарии: "+monthsLabel(hg):"дальше 30 лет"}</div></div>
+  const hb=hitIncome(0), hg=hitIncome(g), now=(b.D+b.O)/12, re=s.reinvest!=="none";
+  const fld=(label,input,hint)=>`<label class="f fh">${label}${input}<span class="hint">${hint}</span></label>`;
+  return `${dupBanner()}
+  <div class="panel"><h2>Коротко</h2>
+    <p class="lead">Сейчас выплаты приносят <b>${rub(now)} в месяц</b> — это ${rub(b.D+b.O)} за последние 12 месяцев: дивиденды ${rub(b.D)}, купоны и фонды ${rub(b.O)}.
+    ${hg?`Если докладывать ${rub(num(s.contribution))} в месяц${re?" и реинвестировать выплаты":""}, пассив ${rub(goal)} в месяц — <b>${dateLabel(hg)}</b>, через ${durLabel(hg)}.`:`С такими настройками пассив ${rub(goal)} в месяц — дальше 30 лет: увеличьте пополнение.`}</p>
+    ${!b.D&&state.accounts.some(isAuto)?`<p class="note">Дивидендов за 12 месяцев нет. Раньше сайт не забирал из Т-Банка дивиденды, выплаченные на карту, — теперь забирает: дождитесь обновления или нажмите «Синхронизировать сейчас» во вкладке «Подключения». Там же есть сводка всех операций за год.</p>`:!b.D?`<p class="note">Дивидендов за 12 месяцев нет — внесите их во вкладке «Выплаты» или подключите Т-Банк.</p>`:""}
+  </div>
+  <section class="grid kpis">
+    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub(now)}</div><div class="n">в месяц — выплаты за 12 мес, делённые на 12</div></div>
+    <div class="panel kpi"><small>Дивиденды за 12 мес</small><div class="v">${rub(b.D)}</div><div class="n">по акциям</div></div>
+    <div class="panel kpi"><small>Купоны и фонды за 12 мес</small><div class="v">${rub(b.O)}</div><div class="n">облигации, ЗПИФ, БПИФ</div></div>
+    <div class="panel kpi"><small>Доходность выплат</small><div class="v">${b.curYield==null?"—":b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})+"%"}</div><div class="n">выплаты за год ÷ ликвидный портфель${b.curYield!=null&&b.curYield<8?". Низкая, если бумаги куплены недавно или часть выплат не внесена":""}</div></div>
   </section>
   <div class="panel">
-    <h2>Как рост дивидендов влияет на цель <span class="sub">сценарий, а не прогноз выплат</span></h2>
+    <h2>Когда пассив дойдёт до цели <span class="sub">сценарий, а не обещание выплат</span></h2>
     <div class="scen">
-      <label class="f">Цель, пассив ₽/мес<input id="i-goal" type="number" step="10000" value="${num(s.goalIncome)}"></label>
-      <label class="f">Рост дивидендов акций, %/год<input id="i-g" type="number" step="1" value="${g}"></label>
-      <label class="f">Пополнение, ₽/мес<input id="i-c" type="number" step="10000" value="${num(s.contribution)}"></label>
-      <label class="f">Индексация пополнений, %/год<input id="i-idx" type="number" step="1" value="${num(s.indexation)}"></label>
-      <label class="f">Доходность новых покупок, %<input id="i-y" type="number" step="0.5" value="${b.newYield}"></label>
-      <label class="f">Выплаты<select id="i-re"><option value="all" ${s.reinvest!=="none"?"selected":""}>Реинвестировать</option><option value="none" ${s.reinvest==="none"?"selected":""}>Тратить</option></select></label>
+      ${fld("Цель: пассив в месяц, ₽",`<input id="i-goal" type="number" step="10000" value="${goal}">`,"сколько хотите получать от выплат каждый месяц")}
+      ${fld("Пополнение в месяц, ₽",`<input id="i-c" type="number" step="10000" value="${num(s.contribution)}">`,"то же, что на «Обзоре»: сколько докладываете каждый месяц")}
+      ${fld("Рост дивидендов, % в год",`<input id="i-g" type="number" step="1" value="${g}">`,"на сколько компании каждый год повышают дивиденды; 0 — без роста")}
     </div>
+    <details id="i-more" style="margin:-2px 0 12px"><summary class="muted">Ещё настройки: индексация пополнений, доходность покупок, реинвест</summary>
+      <div class="scen" style="margin-top:10px">
+        ${fld("Индексация пополнений, % в год",`<input id="i-idx" type="number" step="1" value="${num(s.indexation)}">`,"на сколько каждый год увеличиваете пополнение, например вслед за зарплатой")}
+        ${fld("Доходность новых покупок, %",`<input id="i-y" type="number" step="0.5" value="${b.newYield}">`,"сколько процентов в год в выплатах дают бумаги, которые покупаете на пополнения")}
+        ${fld("Выплаты",`<select id="i-re"><option value="all" ${re?"selected":""}>Реинвестировать</option><option value="none" ${re?"":"selected"}>Тратить</option></select>`,"реинвест — выплаты докупают бумаги и ускоряют рост")}
+      </div>
+    </details>
     <div class="seg" role="group" aria-label="Горизонт">${[3,5,10].map(v=>`<button data-hz="${v}" aria-pressed="${H===v}">${v} лет</button>`).join("")}</div>
-    ${warn.map(w=>`<div class="banner" style="margin-top:12px">${esc(w)}</div>`).join("")}
+    ${!b.V?`<div class="banner" style="margin-top:12px">Ликвидный портфель пустой — заполните счета.</div>`:""}
     <div class="grid kpis" style="margin-top:12px">
-      <div class="panel kpi"><small>Без роста дивидендов</small><div class="v">${rub(base.avg)}</div><div class="n">в среднем в мес за ${H}-й год · цель ${hb?monthsLabel(hb):"дальше 30 лет"}</div></div>
-      <div class="panel kpi"><small>С ростом ${g>0?"+":""}${g}% в год</small><div class="v ${grow.avg>=base.avg?"up":"down"}">${rub(grow.avg)}</div><div class="n">${grow.avg>=base.avg?"+":""}${rub(grow.avg-base.avg)} в мес · цель ${hg?monthsLabel(hg):"дальше 30 лет"}</div></div>
-      <div class="panel kpi"><small>Разница в сроке</small><div class="v">${hb&&hg?(hb-hg>0?"−"+durLabel(hb-hg):hb-hg<0?"+"+durLabel(hg-hb):"0"):"—"}</div><div class="n">до цели ${rub(num(s.goalIncome))}/мес</div></div>
+      ${g?`<div class="panel kpi"><small>Без роста дивидендов</small><div class="v">${rub(base.avg)}</div><div class="n">в месяц в среднем на ${H}-й год · цель ${hb?dateLabel(hb):"дальше 30 лет"}</div></div>
+      <div class="panel kpi"><small>С ростом ${g>0?"+":""}${g}% в год</small><div class="v ${grow.avg>=base.avg?"up":"down"}">${rub(grow.avg)}</div><div class="n">${grow.avg>=base.avg?"+":""}${rub(grow.avg-base.avg)} в месяц · цель ${hg?dateLabel(hg):"дальше 30 лет"}</div></div>
+      <div class="panel kpi"><small>Разница в сроке</small><div class="v">${hb&&hg?(hb-hg>0?"−"+durLabel(hb-hg):hb-hg<0?"+"+durLabel(hg-hb):"0"):"—"}</div><div class="n">до цели ${rub(goal)} в месяц</div></div>`
+      :`<div class="panel kpi"><small>Через ${H} лет</small><div class="v">${rub(base.avg)}</div><div class="n">в месяц — в среднем за ${H}-й год</div></div>
+      <div class="panel kpi"><small>Цель ${rub(goal)} в месяц</small><div class="v">${hb?dateLabel(hb):"—"}</div><div class="n">${hb?"через "+durLabel(hb):"дальше 30 лет"}</div></div>
+      <div class="panel kpi"><small>Получено выплат за ${H} лет</small><div class="v">${mln(base.total)}</div><div class="n">${re?"реинвестируются":"тратятся"}. Поставьте рост дивидендов, например 5%, чтобы сравнить</div></div>`}
     </div>
-    ${lineChart([{pts:base.pts.filter(p=>p.m%3===0),color:"var(--faint)",label:"без роста",dash:true},{pts:grow.pts.filter(p=>p.m%3===0),color:"var(--accent)",label:"с ростом "+g+"%"}],{goal:num(s.goalIncome),goalLabel:"цель "+k(num(s.goalIncome)),aria:"Пассивный доход в месяц"})}
-    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Горизонт</th><th class="num">Без роста, ₽/мес</th><th class="num">С ростом, ₽/мес</th><th class="num">Разница</th><th class="num">Получено выплат за срок</th></tr></thead><tbody>
-    ${[3,5,10].map(h=>{const a=incomeSim(h,0),c=incomeSim(h,g);return `<tr><td>${h} лет</td><td class="num">${rub(a.avg)}</td><td class="num">${rub(c.avg)}</td><td class="num ${c.avg-a.avg>=0?"up":"down"}">${c.avg-a.avg>=0?"+":""}${rub(c.avg-a.avg)}</td><td class="num">${mln(c.total)}</td></tr>`}).join("")}
+    ${lineChart(g?[{pts:base.pts.filter(p=>p.m%3===0),color:"var(--faint)",label:"без роста",dash:true},{pts:grow.pts.filter(p=>p.m%3===0),color:"var(--accent)",label:"с ростом "+g+"%"}]:[{pts:base.pts.filter(p=>p.m%3===0),color:"var(--accent)",label:"пассив в месяц"}],{goal,goalLabel:"цель "+k(goal),aria:"Пассивный доход в месяц"})}
+    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Горизонт</th><th class="num">${g?"Без роста, ₽/мес":"Пассив, ₽/мес"}</th>${g?`<th class="num">С ростом, ₽/мес</th><th class="num">Разница</th>`:""}<th class="num">Получено выплат за срок</th></tr></thead><tbody>
+    ${[3,5,10].map(h=>{const a=incomeSim(h,0),c=incomeSim(h,g);return `<tr><td>${h} лет</td><td class="num">${rub(a.avg)}</td>${g?`<td class="num">${rub(c.avg)}</td><td class="num ${c.avg-a.avg>=0?"up":"down"}">${c.avg-a.avg>=0?"+":""}${rub(c.avg-a.avg)}</td>`:""}<td class="num">${mln(c.total)}</td></tr>`}).join("")}
     </tbody></table></div>
-    <p class="note">Цель «точка свободы» — около 300 тыс. ₽/мес (капитал 25–30 млн). Рост применяется только к дивидендам акций. Купоны и выплаты фондов на единицу бумаги постоянны, цены и состав портфеля не меняются. Новые покупки приносят «доходность новых покупок» в той же пропорции дивиденды/купоны, что и сейчас. Пополнения растут на индексацию раз в год. Процент задаёте вы: это сценарий, а не исторический рост и не обещание выплат.</p>
+    <p class="note">Как считается: стартуем с выплат за последние 12 месяцев. Каждый месяц пополнение${re?" и пришедшие выплаты":""} покупают бумаги с «доходностью новых покупок» (${b.newYield}%) — в той же пропорции дивиденды / купоны, что сейчас. Рост применяется только к дивидендам акций; купоны постоянны; цены не меняются. Это сценарий, а не прогноз выплат. Цель «точка свободы» — около 300 тыс. ₽ в месяц, это капитал 25–30 млн.</p>
   </div>
   <div class="panel"><h2>Пассив по этапам капитала <span class="sub">ориентир до налога</span></h2>
     <div class="tablewrap"><table><thead><tr><th>Капитал</th><th class="num">при 12%</th><th class="num">при 15%</th><th class="num">при 18%</th></tr></thead><tbody>
@@ -767,14 +972,23 @@ function bindNew(){
 const TINV_KEY="kapital-tinvest", TINV_INST_KEY="kapital-tinvest-inst";
 const TINV_BASES=["https://invest-public-api.tbank.ru/rest","https://invest-public-api.tinkoff.ru/rest"];
 const TINV_SVC="tinkoff.public.invest.api.contract.v1.";
-const TINV_EVERY=10*60*1000;
+const TINV_EVERY=60*1000, TINV_OPS_EVERY=10*60*1000, TINV_RETRY=5*60*1000;
+const TINV_OPS_VER=2; // bump to re-read the whole payout history after a change in what is fetched
+const TINV_INCOME={OPERATION_TYPE_COUPON:"coupon",OPERATION_TYPE_DIVIDEND:"dividend",OPERATION_TYPE_DIV_EXT:"dividend"};
+const OPLABEL={OPERATION_TYPE_COUPON:"Купоны",OPERATION_TYPE_DIVIDEND:"Дивиденды",OPERATION_TYPE_DIV_EXT:"Дивиденды на карту",OPERATION_TYPE_DIVIDEND_TRANSFER:"Передача дивидендного дохода",
+  OPERATION_TYPE_BOND_REPAYMENT:"Частичное погашение облигаций",OPERATION_TYPE_BOND_REPAYMENT_FULL:"Погашение облигаций",OPERATION_TYPE_INPUT:"Пополнения",OPERATION_TYPE_OUTPUT:"Выводы",
+  OPERATION_TYPE_INP_MULTI:"Пополнения с другого счёта",OPERATION_TYPE_OUT_MULTI:"Выводы на другой счёт",OPERATION_TYPE_INPUT_ACQUIRING:"Пополнения с карты",OPERATION_TYPE_OUTPUT_ACQUIRING:"Выводы на карту",
+  OPERATION_TYPE_BOND_TAX:"Налог с купонов",OPERATION_TYPE_DIVIDEND_TAX:"Налог с дивидендов",OPERATION_TYPE_TAX:"Налог",OPERATION_TYPE_TAX_CORRECTION:"Корректировка налога",OPERATION_TYPE_TAX_CORRECTION_COUPON:"Корректировка налога по купонам",
+  OPERATION_TYPE_SERVICE_FEE:"Плата за обслуживание",OPERATION_TYPE_INPUT_SECURITIES:"Зачисление бумаг",OPERATION_TYPE_OUTPUT_SECURITIES:"Вывод бумаг",OPERATION_TYPE_TRANS_IIS_BS:"Перевод бумаг с ИИС",OPERATION_TYPE_TRANS_BS_BS:"Перевод бумаг между счетами"};
+const TACC_TYPE={ACCOUNT_TYPE_TINKOFF:"брокерский",ACCOUNT_TYPE_TINKOFF_IIS:"ИИС",ACCOUNT_TYPE_INVEST_BOX:"инвесткопилка"};
 let tinv=(()=>{try{return JSON.parse(localStorage.getItem(TINV_KEY)||"null")||{auto:true}}catch(e){return {auto:true}}})();
-let tinvBusy=false, tinvTimer=null, tinvBooted=false;
+let tinvBusy=false, tinvTimer=null, tinvBooted=false, uiTick=null;
 function saveTinv(){try{localStorage.setItem(TINV_KEY,JSON.stringify(tinv))}catch(e){}}
 function loadInst(){try{return JSON.parse(localStorage.getItem(TINV_INST_KEY)||"{}")||{}}catch(e){return {}}}
 function saveInst(m){try{localStorage.setItem(TINV_INST_KEY,JSON.stringify(m))}catch(e){}}
 const mv=m=>m?(parseFloat(m.units||0)||0)+(Number(m.nano)||0)/1e9:0;
 const maskToken=t=>t?String(t).slice(0,4)+"••••••"+String(t).slice(-4):"";
+const isAuto=a=>!!(a&&a.tid&&tinv.token);
 async function tcall(method,body){
   const path="/"+TINV_SVC+method;
   const bases=tinv.proxy?[String(tinv.proxy).trim().replace(/\/+$/,"").replace(/\/rest$/,"")+"/rest"]:TINV_BASES;
@@ -789,10 +1003,13 @@ async function tcall(method,body){
   }
   throw lastErr||{kind:"blocked"};
 }
+// Merge fields into a doc; skip the write when nothing changed (the portfolio refreshes every minute).
 function putDoc(coll,id,body){
   const list=state[coll], i=list.findIndex(x=>x.id===id);
-  if(i>=0) list[i]={...list[i],...body}; else list.push({id,...body});
+  if(i>=0){const cur=list[i]; if(Object.keys(body).every(k=>JSON.stringify(cur[k])===JSON.stringify(body[k]))) return false; list[i]={...cur,...body}}
+  else list.push({id,...body});
   if(db){const {id:_,...b}=list[i>=0?i:list.length-1];db.collection(coll).doc(id).set(b).catch(err)}
+  return true;
 }
 const TKIND={share:"share",bond:"bond",etf:"fund",currency:"other",futures:"other",option:"other",sp:"other"};
 const normT=t=>String(t||"").toUpperCase().replace(/@$/,"").trim();
@@ -812,71 +1029,152 @@ async function ensureInst(inst,uid,fallback){
     inst[uid]={name:i.name||fallback.name||"",ticker:i.ticker||fallback.ticker||"",type:i.instrumentType||fallback.type||""}}
   catch(e){if(e&&e.kind==="auth")throw e;inst[uid]={name:fallback.name||fallback.ticker||"",ticker:fallback.ticker||"",type:fallback.type||""}}
 }
+// First open on a new device shows sample data: connecting replaces it instead of mixing it with real accounts.
+function dropDemo(){heroBase=null;for(const c of COLLS)state[c]=[];state.settings=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));state.demo=false}
+// One account: value, free cash and every paper with its price
+async function tinvAccount(a,inst){
+  const p=await tcall("OperationsService/GetPortfolio",{accountId:a.id,currency:"RUB"});
+  const accId=linkAccount(a);
+  const total=mv(p.totalAmountPortfolio), cash=mv(p.totalAmountCurrencies);
+  putDoc("accounts",accId,{value:Math.round(total-cash),cash:Math.round(cash),synced:new Date().toISOString()});
+  const ps=(p.positions||[]).filter(x=>x.instrumentType!=="currency");
+  for(const x of ps) await ensureInst(inst,x.instrumentUid,{name:x.ticker,ticker:x.ticker,type:x.instrumentType});
+  // Prices of foreign papers come in their own currency: scale them so each type adds up to the broker's RUB total.
+  const TT={share:p.totalAmountShares,bond:p.totalAmountBonds,etf:p.totalAmountEtf,futures:p.totalAmountFutures,option:p.totalAmountOptions,sp:p.totalAmountSp};
+  const rows=ps.map(x=>{const q=mv(x.quantity),cur=String((x.currentPrice&&x.currentPrice.currency)||"rub").toLowerCase();
+    return {x,q,cur,native:q*(mv(x.currentPrice)+mv(x.currentNkd)),cost:q*mv(x.averagePositionPrice)}});
+  const factor={};
+  for(const t in TT){const rs=rows.filter(r=>r.x.instrumentType===t);const fr=rs.filter(r=>r.cur!=="rub"),fn=fr.reduce((s,r)=>s+r.native,0);
+    if(fr.length&&fn>0){const rub=rs.filter(r=>r.cur==="rub").reduce((s,r)=>s+r.native,0);factor[t]=Math.max(0,(mv(TT[t])-rub)/fn)}}
+  const seen=new Set();
+  for(const r of rows){
+    const uid=r.x.instrumentUid||r.x.figi, info=inst[r.x.instrumentUid]||{}, f=r.cur==="rub"?1:(factor[r.x.instrumentType]||1);
+    const tk=info.ticker||r.x.ticker||"";
+    let pos=state.positions.find(q=>q.tuid===uid&&q.account===accId)
+      ||state.positions.find(q=>!q.tuid&&q.account===accId&&tk&&normT(q.ticker)===normT(tk))
+      ||state.positions.find(q=>!q.tuid&&!q.account&&tk&&normT(q.ticker)===normT(tk));
+    const body={account:accId,tuid:uid,ticker:tk||(pos&&pos.ticker)||"",qty:r.q,value:Math.round(r.native*f),cost:Math.round(r.cost*f)};
+    if(pos) putDoc("positions",pos.id,body);
+    else putDoc("positions","tinv-"+accId+"-"+uid,{name:info.name||tk||uid,kind:TKIND[r.x.instrumentType]||"other",verdict:"hold",...body});
+    seen.add(uid);
+  }
+  for(const q of state.positions.filter(q=>q.account===accId&&q.tuid&&!seen.has(q.tuid)&&(num(q.value)||num(q.qty)))) putDoc("positions",q.id,{value:0,cost:0,qty:0});
+  return {accId,total,cash,positions:rows.length};
+}
+// Coupons and dividends (also those paid straight to a card) + a 12-month summary of every non-trade operation
+async function tinvOps(a,inst,manual){
+  const now=Date.now(), yearAgo=now-365*864e5;
+  let from=tinv.opsFrom[a.id]||a.openedDate||new Date(now-3*365*864e5).toISOString();
+  if(manual&&Date.parse(from)>now-370*864e5) from=new Date(now-370*864e5).toISOString();
+  const items=[]; let cursor="",guard=0;
+  do{const r=await tcall("OperationsService/GetOperationsByCursor",{accountId:a.id,from,to:new Date(now).toISOString(),cursor,limit:1000,
+      state:"OPERATION_STATE_EXECUTED",withoutCommissions:true,withoutTrades:true,withoutOvernights:true});
+    items.push(...(r.items||[])); cursor=r.hasNext?r.nextCursor:""}while(cursor&&++guard<30);
+  if(Date.parse(from)<=yearAgo+864e5){const types={};
+    for(const it of items){if(Date.parse(it.date)<yearAgo)continue;const cur=String((it.payment&&it.payment.currency)||"rub").toLowerCase();
+      const key=(it.type||"?")+(cur!=="rub"?"|"+cur:"");const t=types[key]||(types[key]={n:0,sum:0});t.n++;t.sum+=mv(it.payment)}
+    tinv.opsStat[a.id]={at:now,types}}
+  const divs=items.filter(it=>it.type==="OPERATION_TYPE_DIVIDEND");
+  let added=0, lookups=0;
+  for(const it of items){
+    const k0=TINV_INCOME[it.type]; if(!k0) continue;
+    if(String((it.payment&&it.payment.currency)||"rub").toLowerCase()!=="rub") continue; // foreign-currency payouts are listed in the summary only
+    const ext=it.type==="OPERATION_TYPE_DIV_EXT", day=String(it.date||"").slice(0,10);
+    let amt=mv(it.payment); if(ext) amt=Math.abs(amt);
+    if(!(amt>0)) continue;
+    if(ext&&divs.some(x=>x.instrumentUid===it.instrumentUid&&String(x.date||"").slice(0,10)===day&&Math.abs(Math.abs(mv(x.payment))-amt)<1)) continue;
+    const id="tinv-op-"+it.id, ex=state.payouts.find(p=>p.id===id);
+    if(ex){if(!ex.tacc) putDoc("payouts",id,{tacc:a.id,tuid:it.instrumentUid||"",date:day}); continue}
+    if(it.instrumentUid&&!inst[it.instrumentUid]&&lookups++<60) await ensureInst(inst,it.instrumentUid,{name:it.name,type:it.instrumentType});
+    const info=inst[it.instrumentUid]||{}, t=info.type||it.instrumentType||"";
+    const kind=k0==="coupon"?"coupon":(t==="etf"?"rent":"dividend");
+    putDoc("payouts",id,{month:day.slice(0,7),date:day,name:info.name||it.name||"Выплата",kind,amount:Math.round(amt),src:"tinvest",tacc:a.id,tuid:it.instrumentUid||"",...(ext?{card:true}:{})});
+    added++;
+  }
+  tinv.opsFrom[a.id]=new Date(now-14*864e5).toISOString();
+  return added;
+}
+const fatal=e=>e&&(e.kind==="auth"||e.kind==="blocked"||e.kind==="offline");
+const errShort=e=>String(tinvErrorText(e)).slice(0,160);
+function dataSig(){return JSON.stringify([state.accounts.map(a=>[a.id,a.value,a.cash]),state.positions.map(p=>[p.id,p.value,p.qty,p.cost]),state.payouts.length,state.demo])}
 async function tinvSync(manual){
-  if(!tinv.token||tinvBusy) return; tinvBusy=true; renderConnLive();
-  const sum={accounts:0,positions:0,payouts:0};
+  if(!tinv.token) return;
+  if(tinvBusy){if(manual)toast("Уже обновляю…");return}
+  tinvBusy=true; tinv.tried=Date.now(); syncPill(); renderConnLive();
+  const before=dataSig();
+  const doOps=!!manual||tinv.opsVer!==TINV_OPS_VER||Date.now()-(tinv.lastOps||0)>=TINV_OPS_EVERY-5000;
+  const sum={accounts:0,positions:0,payouts:0,failed:0,skipped:0};
   try{
-    const accs=((await tcall("UsersService/GetAccounts",{})).accounts||[]).filter(a=>a.status!=="ACCOUNT_STATUS_CLOSED"&&a.accessLevel!=="ACCOUNT_ACCESS_LEVEL_NO_ACCESS");
-    const inst=loadInst(); tinv.opsFrom=tinv.opsFrom||{};
-    for(const a of accs){
-      const p=await tcall("OperationsService/GetPortfolio",{accountId:a.id,currency:"RUB"});
-      const accId=linkAccount(a); sum.accounts++;
-      const total=mv(p.totalAmountPortfolio), cash=mv(p.totalAmountCurrencies);
-      putDoc("accounts",accId,{value:Math.round(total-cash),cash:Math.round(cash),synced:new Date().toISOString()});
-      const ps=(p.positions||[]).filter(x=>x.instrumentType!=="currency");
-      for(const x of ps) await ensureInst(inst,x.instrumentUid,{name:x.ticker,ticker:x.ticker,type:x.instrumentType});
-      // Prices of foreign papers come in their own currency: scale them so each type adds up to the broker's RUB total.
-      const TT={share:p.totalAmountShares,bond:p.totalAmountBonds,etf:p.totalAmountEtf,futures:p.totalAmountFutures,option:p.totalAmountOptions,sp:p.totalAmountSp};
-      const rows=ps.map(x=>{const q=mv(x.quantity),cur=String((x.currentPrice&&x.currentPrice.currency)||"rub").toLowerCase();
-        return {x,q,cur,native:q*(mv(x.currentPrice)+mv(x.currentNkd)),cost:q*mv(x.averagePositionPrice)}});
-      const factor={};
-      for(const t in TT){const rs=rows.filter(r=>r.x.instrumentType===t);const fr=rs.filter(r=>r.cur!=="rub"),fn=fr.reduce((s,r)=>s+r.native,0);
-        if(fr.length&&fn>0){const rub=rs.filter(r=>r.cur==="rub").reduce((s,r)=>s+r.native,0);factor[t]=Math.max(0,(mv(TT[t])-rub)/fn)}}
-      const seen=new Set();
-      for(const r of rows){
-        const uid=r.x.instrumentUid||r.x.figi, info=inst[r.x.instrumentUid]||{}, f=r.cur==="rub"?1:(factor[r.x.instrumentType]||1);
-        const tk=info.ticker||r.x.ticker||"";
-        let pos=state.positions.find(q=>q.tuid===uid&&q.account===accId)
-          ||state.positions.find(q=>!q.tuid&&q.account===accId&&tk&&normT(q.ticker)===normT(tk))
-          ||state.positions.find(q=>!q.tuid&&!q.account&&tk&&normT(q.ticker)===normT(tk));
-        const body={account:accId,tuid:uid,ticker:tk||(pos&&pos.ticker)||"",qty:r.q,value:Math.round(r.native*f),cost:Math.round(r.cost*f)};
-        if(pos) putDoc("positions",pos.id,body);
-        else putDoc("positions","tinv-"+accId+"-"+uid,{name:info.name||tk||uid,kind:TKIND[r.x.instrumentType]||"other",verdict:"hold",...body});
-        seen.add(uid); sum.positions++;
-      }
-      for(const q of state.positions.filter(q=>q.account===accId&&q.tuid&&!seen.has(q.tuid)&&(num(q.value)||num(q.qty)))) putDoc("positions",q.id,{value:0,cost:0,qty:0});
-      // Coupons and dividends since the account opened (then only the last two weeks on each refresh)
-      const from=tinv.opsFrom[a.id]||a.openedDate||new Date(Date.now()-3*365*864e5).toISOString();
-      let cursor="",guard=0; const items=[];
-      do{const r=await tcall("OperationsService/GetOperationsByCursor",{accountId:a.id,from,to:new Date().toISOString(),cursor,limit:1000,
-          operationTypes:["OPERATION_TYPE_COUPON","OPERATION_TYPE_DIVIDEND"],state:"OPERATION_STATE_EXECUTED",withoutCommissions:true,withoutTrades:true,withoutOvernights:true});
-        items.push(...(r.items||[])); cursor=r.hasNext?r.nextCursor:""}while(cursor&&++guard<30);
-      let lookups=0;
-      for(const it of items){const id="tinv-op-"+it.id; if(state.payouts.some(p=>p.id===id)) continue;
-        const amt=mv(it.payment); if(!(amt>0)) continue;
-        if(it.instrumentUid&&!inst[it.instrumentUid]&&lookups++<60) await ensureInst(inst,it.instrumentUid,{name:it.name,type:it.instrumentType});
-        const info=inst[it.instrumentUid]||{}, t=info.type||it.instrumentType||"";
-        const kind=it.type==="OPERATION_TYPE_COUPON"?"coupon":(t==="etf"?"rent":"dividend");
-        putDoc("payouts",id,{month:String(it.date||"").slice(0,7),name:info.name||it.name||"Выплата",kind,amount:Math.round(amt),src:"tinvest"}); sum.payouts++}
-      tinv.opsFrom[a.id]=new Date(Date.now()-14*864e5).toISOString();
+    const all=(await tcall("UsersService/GetAccounts",{})).accounts||[];
+    if(state.demo&&!db) dropDemo();
+    const inst=loadInst();
+    if(tinv.opsVer!==TINV_OPS_VER) tinv.opsFrom={};
+    tinv.opsFrom=tinv.opsFrom||{}; tinv.opsStat=tinv.opsStat||{};
+    const diag=[], keys=[]; let total=0, firstErr=null;
+    for(const a of all){
+      const d={id:a.id,name:a.name||"",type:a.type||"",access:a.accessLevel||""}; diag.push(d);
+      if(a.status==="ACCOUNT_STATUS_CLOSED"){d.skip="closed";continue}
+      if(a.accessLevel==="ACCOUNT_ACCESS_LEVEL_NO_ACCESS"){d.skip="noaccess";sum.skipped++;continue}
+      if(a.status==="ACCOUNT_STATUS_NEW"){d.skip="new";continue}
+      try{const r=await tinvAccount(a,inst);Object.assign(d,{ok:true,acc:r.accId,total:r.total,cash:r.cash,positions:r.positions});
+        total+=r.total; keys.push(a.id); sum.accounts++; sum.positions+=r.positions}
+      catch(e){if(fatal(e))throw e;d.error=errShort(e);firstErr=firstErr||e;sum.failed++;continue}
+      if(doOps){try{sum.payouts+=await tinvOps(a,inst,manual)}catch(e){if(fatal(e))throw e;d.opsError=errShort(e)}}
     }
     saveInst(inst); if(!db) saveLocal();
-    tinv.last=Date.now(); tinv.lastError=null; tinv.lastSum=sum; saveTinv();
-    if(manual) toast(`Т-Инвестиции: счетов ${sum.accounts}, бумаг ${sum.positions}, новых выплат ${sum.payouts}`);
+    tinv.accs=diag; tinv.lastSum=sum;
+    if(!sum.accounts) throw firstErr||{kind:"noacc"};
+    const key=keys.join(",");
+    tinv.lastDelta=tinv.totalKey===key&&tinv.lastTotal!=null?Math.round(total-tinv.lastTotal):null;
+    tinv.prevAt=tinv.last||null; tinv.lastTotal=total; tinv.totalKey=key;
+    tinv.last=Date.now(); tinv.lastError=null;
+    if(doOps){tinv.lastOps=Date.now();tinv.opsVer=TINV_OPS_VER}
+    saveTinv();
+    if(manual) toast(`Т-Инвестиции: счетов ${sum.accounts}, бумаг ${sum.positions}, новых выплат ${sum.payouts}`+(sum.failed+sum.skipped?` · без данных: ${sum.failed+sum.skipped}`:""));
   }catch(e){tinv.lastError=e&&e.kind?e:{kind:"http",msg:String(e&&e.message||e)};saveTinv();if(!db)saveLocal();if(manual)toast("Не удалось обновить Т-Инвестиции — подробности во вкладке «Подключения»")}
-  finally{tinvBusy=false;if(!isEditing())render();else renderHeader()}
+  finally{
+    tinvBusy=false; syncPill();
+    const changed=dataSig()!==before;
+    if(isEditing()){if(changed)pendingRender=true;renderHeader();renderConnLive()}
+    else if(changed||tab==="connect") render(); else {renderHeader();renderConnLive()}
+  }
 }
 const tinvAutoOK=()=>!!tinv.token&&tinv.auto!==false&&!(tinv.lastError&&tinv.lastError.kind==="auth");
-function tinvSchedule(){clearInterval(tinvTimer);tinvTimer=null;
-  if(tinv.token&&tinv.auto!==false) tinvTimer=setInterval(()=>{if(document.visibilityState!=="hidden"&&tinvAutoOK())tinvSync(false)},TINV_EVERY)}
-function tinvBoot(){if(tinvBooted)return;tinvBooted=true;tinvSchedule();
-  if(tinvAutoOK()&&Date.now()-(tinv.last||0)>60*1000) tinvSync(false);
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tinvAutoOK()&&Date.now()-(tinv.last||0)>TINV_EVERY)tinvSync(false)})}
-function ago(ts){if(!ts)return "ещё не было";const m=Math.round((Date.now()-ts)/60000);return m<1?"только что":m<60?m+" мин назад":new Date(ts).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+// Due when a minute has passed since the last attempt (after an error: wait 5 minutes)
+const tinvDue=()=>Date.now()-Math.max(tinv.last||0,tinv.tried||0)>=(tinv.lastError?TINV_RETRY:TINV_EVERY)-3000;
+function tinvTick(){if(document.visibilityState!=="hidden"&&tinvAutoOK()&&!tinvBusy&&tinvDue())tinvSync(false)}
+function tinvSchedule(){clearInterval(tinvTimer);tinvTimer=null;if(tinv.token&&tinv.auto!==false)tinvTimer=setInterval(tinvTick,5000);syncPill()}
+function tinvBoot(){if(tinvBooted)return;tinvBooted=true;tinvSchedule();tinvTick();
+  if(!uiTick) uiTick=setInterval(()=>{syncPill();const a=document.getElementById("tinv-ago");if(a)a.textContent=agoShort(tinv.last)},1000);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")tinvTick()})}
+function agoShort(ts){if(!ts)return "ещё не было";const s=Math.max(0,Math.round((Date.now()-ts)/1000));
+  if(s<5)return "только что";if(s<60)return s+" с назад";const m=Math.floor(s/60);if(m<60)return m+" мин назад";
+  return new Date(ts).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+const signed=n=>(n>0?"+":n<0?"−":"")+nf.format(Math.abs(Math.round(n)))+" ₽";
+// Header pill: visible proof that numbers refresh — time since the last update and how much the T-Bank part moved
+function syncPill(){
+  const el=document.getElementById("h-sync"); if(!el) return;
+  if(!tinv.token||!state.loaded){el.hidden=true;return}
+  el.hidden=false; let cls="", txt;
+  const t=document.getElementById("h-sync-t");
+  if(tinvBusy){cls="busy";txt="Т-Банк · обновляю…"}
+  else if(tinv.lastError&&!tinv.last){cls="err";txt="Т-Банк · не обновилось"}
+  else if(tinv.lastError){cls="err";txt="Т-Банк · ошибка, данные от "+agoShort(tinv.last)}
+  else{
+    const stale=Date.now()-(tinv.last||0)>3*TINV_EVERY;
+    if(stale||tinv.auto===false) cls="stale";
+    const d=tinv.lastDelta;
+    txt="Т-Банк · обновлено <b>"+agoShort(tinv.last)+"</b>"+(tinv.auto===false?" · авто выкл.":d==null?"":d?" · "+signed(d):" · без изменений");
+  }
+  el.className="sync "+cls;
+  if(t.innerHTML!==txt) t.innerHTML=txt;
+  el.title=(tinv.last?"Последнее обновление: "+new Date(tinv.last).toLocaleTimeString("ru-RU")+". ":"")+(tinv.auto!==false?"Обновляется каждую минуту, пока вкладка открыта. ":"")+(tinv.lastDelta!=null&&tinv.prevAt?"Изменение — с обновления в "+new Date(tinv.prevAt).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})+". ":"")+"Нажмите — «Подключения».";
+}
 function tinvErrorText(e){if(!e)return "";
   if(e.kind==="blocked") return "Браузер не пустил запрос к Т-Инвестициям (CORS). Нужен прокси — шаги ниже, это 5 минут.";
   if(e.kind==="offline") return "Нет интернета. Синхронизация повторится, когда связь вернётся.";
   if(e.kind==="auth") return "Токен не подошёл"+(e.msg?" ("+e.msg+")":"")+". Проверьте, что скопировали его целиком и не отозвали в настройках Т-Инвестиций.";
+  if(e.kind==="noacc") return "Токен не видит ни одного открытого счёта. Выпустите токен «только для чтения» с доступом ко всем счетам.";
   return "Ошибка Т-Инвестиций"+(e.status?" "+e.status:"")+(e.msg?": "+e.msg:"")+".";}
 function proxyCode(){const o=location.origin&&location.origin.startsWith("http")?location.origin:"https://ваш-сайт";
   return `// Cloudflare Worker: пропускает запросы с вашего сайта к API Т-Инвестиций.
@@ -904,28 +1202,62 @@ export default {
     return new Response(r.body, { status: r.status, headers: { ...cors, "Content-Type": "application/json" } });
   },
 };`}
+function inLast12(month){const n=new Date(),from=new Date(n.getFullYear(),n.getMonth()-11,1);return new Date(String(month)+"-01")>=from}
+// What the token sees, account by account — for checking against renta.life
+function tAccTable(){
+  const list=tinv.accs||[]; if(!list.length) return "";
+  const rows=list.map(d=>{
+    const by={coupon:0,dividend:0,rent:0};
+    state.payouts.filter(p=>p.src==="tinvest"&&p.tacc===d.id&&inLast12(p.month)).forEach(p=>by[p.kind in by?p.kind:"rent"]+=num(p.amount));
+    const st=d.ok?(d.opsError?`<span class="pill watch">выплаты не загрузились</span>`:`<span class="pill buy">обновлён</span>`)
+      :d.skip==="closed"?`<span class="pill hold">закрыт</span>`:d.skip==="noaccess"?`<span class="pill sell">токен не видит</span>`:d.skip==="new"?`<span class="pill watch">открывается</span>`:`<span class="pill sell">ошибка</span>`;
+    const why=d.error||d.opsError||(d.skip==="noaccess"?"Выпустите токен с доступом ко всем счетам":d.skip==="closed"?"Не учитывается":"");
+    return `<tr><td>${esc(d.name||"Счёт")} <span class="muted">· ${esc(TACC_TYPE[d.type]||String(d.type).replace("ACCOUNT_TYPE_","").toLowerCase()||"счёт")}</span></td>
+      <td>${st}${why?`<div class="muted" style="font-size:12px;margin-top:2px">${esc(why)}</div>`:""}</td>
+      <td class="num">${d.ok?rub(d.total):"—"}</td><td class="num">${d.ok?d.positions:"—"}</td>
+      <td class="num">${d.ok?`${k(by.coupon)} / ${k(by.dividend)}${by.rent?` / ${k(by.rent)}`:""}`:"—"}</td></tr>`}).join("");
+  const okSum=list.filter(d=>d.ok).reduce((x,d)=>x+d.total,0);
+  const manual=state.accounts.filter(a=>LIQUID.includes(a.kind)&&!isAuto(a)&&num(a.value)+num(a.cash)>0), t=totals();
+  return `<div style="font-weight:600;margin:16px 0 6px;font-size:13px">Что видит токен — сверяйте с renta.life по каждому счёту</div>
+  <div class="tablewrap"><table><thead><tr><th>Счёт в Т-Банке</th><th>Статус</th><th class="num">Стоимость</th><th class="num">Бумаг</th><th class="num">Купоны / дивиденды${state.payouts.some(p=>p.src==="tinvest"&&p.kind==="rent")?" / фонды":""} за 12 мес</th></tr></thead><tbody>${rows}</tbody>
+  <tfoot><tr><td colspan="2">Т-Банк по токену</td><td class="num">${rub(okSum)}</td><td colspan="2"></td></tr></tfoot></table></div>
+  <div class="alloc" style="margin-top:12px">
+    <div class="row"><span>Т-Банк, обновляется сам</span><b>${mln(okSum)}</b></div>
+    ${manual.map(a=>`<div class="row"><span>+ ${esc(a.name)} <span class="muted">· вручную${a.updated?", "+new Date(a.updated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"}):a.note?", "+esc(a.note):""}</span></span><b>${mln(num(a.value)+num(a.cash))}</b></div>`).join("")}
+    <div class="row" style="border-top:1px solid var(--line);padding-top:6px"><span><b>= «Ликвидно» в шапке сайта</b></span><b>${mln(t.liquid)}</b></div>
+  </div>
+  <p class="note">renta.life показывает только то, что подключено там. Если сумма по Т-Банку отличается, сравните счета построчно: у счёта со статусом «токен не видит» выпустите новый токен с доступом ко всем счетам. Цены меняются только пока идут торги, поэтому ночью и в выходные цифры могут стоять на месте.</p>`;
+}
+function tOpsTable(){
+  const st=tinv.opsStat||{}, list=(tinv.accs||[]).filter(d=>st[d.id]); if(!list.length) return "";
+  const rows=[]; for(const d of list) for(const [key,v] of Object.entries(st[d.id].types)){const [type,cur]=key.split("|");rows.push({d,type,cur,...v})}
+  rows.sort((a,b)=>Math.abs(b.sum)-Math.abs(a.sum));
+  const at=Math.min(...list.map(d=>st[d.id].at));
+  return `<details id="tinv-ops" style="margin-top:12px"><summary style="font-weight:500">Все операции за 12 месяцев по типам, без сделок — помогает найти, куда пришли деньги</summary>
+  <div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Тип операции</th><th>Счёт</th><th class="num">Сколько раз</th><th class="num">Сумма</th></tr></thead><tbody>
+  ${rows.map(r=>`<tr><td>${TINV_INCOME[r.type]?"<b>":""}${esc(OPLABEL[r.type]||String(r.type).replace("OPERATION_TYPE_","").toLowerCase())}${TINV_INCOME[r.type]?"</b>":""}${r.cur?` <span class="muted">(${esc(r.cur.toUpperCase())}, не в рублях — в выплаты не попадает)</span>`:""}</td>
+    <td class="muted">${esc(r.d.name)}</td><td class="num">${r.n}</td><td class="num">${r.cur?(r.sum>0?"+":"")+nf.format(Math.round(r.sum))+" "+esc(r.cur.toUpperCase()):signed(r.sum)}</td></tr>`).join("")}
+  </tbody></table></div><p class="note">Сводка на ${new Date(at).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}; обновляется кнопкой «Синхронизировать сейчас». Жирным — то, что сайт считает пассивным доходом.</p></details>`;
+}
 function connect(){
-  const on=!!tinv.token, e=tinv.lastError, s=tinv.lastSum;
-  const linked=state.accounts.filter(a=>a.tid);
+  const on=!!tinv.token, e=tinv.lastError;
   const status=tinvBusy?`<span class="pill watch">обновляю…</span>`:!on?`<span class="pill sell">не подключено</span>`:e?`<span class="pill sell">ошибка</span>`:`<span class="pill buy">подключено</span>`;
-  return `<div class="panel"><h2>Т-Инвестиции ${status} <span class="sub" id="tinv-ago">последнее успешное обновление: ${ago(tinv.last)}</span></h2>
-  ${on?`<div class="grid" style="gap:10px">
-    <div class="alloc"><div class="row"><span>Токен</span><b>${esc(maskToken(tinv.token))}</b></div>
-    ${linked.map(a=>`<div class="row"><span>${esc(a.name)} <span class="muted">· ${KIND_LABEL[a.kind]||""}</span></span><b>${mln(num(a.value)+num(a.cash))}</b></div>`).join("")}
-    ${s?`<div class="row"><span class="muted">Последняя синхронизация</span><span class="muted">счетов ${s.accounts}, бумаг ${s.positions}, новых выплат ${s.payouts}</span></div>`:""}</div>
-    ${e?`<div class="banner">${esc(tinvErrorText(e))}</div>`:""}
-    <div class="toolbar" style="margin-top:0">
-      <button class="btn primary" id="tinv-sync" ${tinvBusy?"disabled":""}>Синхронизировать сейчас</button>
-      <label class="f" style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)"><input type="checkbox" id="tinv-auto" ${tinv.auto!==false?"checked":""}> Обновлять каждые 10 минут, пока сайт открыт</label>
+  return `<div class="panel"><h2>Т-Инвестиции ${status} <span class="sub">последнее обновление: <span id="tinv-ago">${agoShort(tinv.last)}</span></span></h2>
+  ${on?`<div class="alloc"><div class="row"><span>Токен</span><b>${esc(maskToken(tinv.token))}</b></div></div>
+    ${e?`<div class="banner" style="margin-top:10px">${esc(tinvErrorText(e))}</div>`:""}
+    <div class="toolbar">
+      <button class="btn primary" id="tinv-sync" ${tinvBusy?"disabled":""}>${tinvBusy?"Обновляю…":"Синхронизировать сейчас"}</button>
+      <label class="f" style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)"><input type="checkbox" id="tinv-auto" ${tinv.auto!==false?"checked":""}> Обновлять каждую минуту, пока сайт открыт</label>
       <button class="btn ghost" id="tinv-off" style="margin-left:auto">Отключить</button>
-    </div></div>`:""}
+    </div>
+    ${tAccTable()}${tOpsTable()}`:""}
   <form class="addform" id="tinv-form" ${on?"":'style="border-top:0;margin-top:0;padding-top:0"'}>
     <label class="f" style="flex:1 1 320px">${on?"Заменить токен":"Токен API (только для чтения)"}<input id="tinv-token" type="password" autocomplete="off" spellcheck="false" placeholder="t.xxxxxxxxxxxxxxxxxxxxxxxx" style="width:100%"></label>
     <button class="btn primary" type="submit">${on?"Сохранить":"Подключить"}</button>
   </form>
   <p class="note">Где взять токен: <a href="https://www.tbank.ru/invest/settings/api/" target="_blank" rel="noopener">настройки Т-Инвестиций → Токены T-Invest API</a> → «Создать токен» → <b>только для чтения</b>, доступ ко всем счетам. Таким токеном нельзя торговать и выводить деньги. Токен хранится только в этом браузере, не попадает в экспорт и в репозиторий и отправляется только в Т-Инвестиции${tinv.proxy?" через ваш прокси":""}.</p>
-  <p class="note">Что подтягивается: брокерский счёт и ИИС (стоимость бумаг и свободные деньги), бумаги с количеством, текущей стоимостью и средней ценой покупки, купоны и дивиденды с даты открытия счёта. Решения «держать / продать» и блоки «штанги» сохраняются. Если раньше вносили выплаты Т-Банка вручную, удалите их во вкладке «Выплаты», чтобы не задвоились.</p>
-  <details ${e&&e.kind==="blocked"?"open":""} style="margin-top:12px"><summary style="cursor:pointer;font-weight:500">Если браузер не пускает запросы: прокси на Cloudflare</summary>
+  <p class="note">Что подтягивается: стоимость и свободные деньги каждого счёта и бумаги с количеством, ценой и средней ценой покупки — каждую минуту; купоны и дивиденды, в том числе выплаченные на карту, — раз в 10 минут и кнопкой «Синхронизировать сейчас». Решения «держать / продать» и блоки «штанги» сохраняются. Ручные выплаты, которые дублируют Т-Банк, удаляются одной кнопкой во вкладке «Пассив и дивиденды».</p>
+  <details id="tinv-proxy-help" ${e&&e.kind==="blocked"?"open":""} style="margin-top:12px"><summary style="font-weight:500">Если браузер не пускает запросы: прокси на Cloudflare</summary>
     <ol style="margin:10px 0;padding-left:20px;display:grid;gap:6px;max-width:70ch">
       <li>Зайдите на <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">dash.cloudflare.com</a> (бесплатный аккаунт) → Workers & Pages → Create → Worker. Назовите, например, <code>capital-proxy</code>, нажмите Deploy.</li>
       <li>Edit code → удалите всё → вставьте код ниже → Deploy.</li>
@@ -937,15 +1269,16 @@ function connect(){
     <button class="btn" type="submit">Сохранить адрес</button></form>
   </details></div>
   <div class="panel"><h2>ВТБ Инвестиции и Инвестпалата <span class="sub">открытого API для частных клиентов нет</span></h2>
-  <p class="note" style="margin-top:0">Обновляйте их из файла: кнопка «Портфель из файла» вверху принимает выгрузку бумаг в CSV или Excel и обновляет позиции в выбранном счёте. Суммы счетов можно поправить во вкладке «Счета».</p></div>`;
+  <p class="note" style="margin-top:0">Обновляйте их из файла: кнопка «Портфель из файла» вверху принимает выгрузку бумаг в CSV или Excel и обновляет позиции в выбранном счёте. Суммы счетов можно поправить во вкладке «Счета» — сайт запомнит дату, и во вкладке «Портфель» будет видно, насколько они свежие.</p></div>`;
 }
 function renderConnLive(){const el=document.getElementById("tinv-sync");if(el){el.disabled=tinvBusy;el.textContent=tinvBusy?"Обновляю…":"Синхронизировать сейчас"}}
 function bindConnect(){
   const f=document.getElementById("tinv-form"); if(f) f.addEventListener("submit",e=>{e.preventDefault();
     const v=document.getElementById("tinv-token").value.trim(); if(!v) return;
-    tinv.token=v; tinv.lastError=null; tinv.opsFrom={}; if(tinv.auto==null) tinv.auto=true; saveTinv(); tinvSchedule(); render(); tinvSync(true)});
+    tinv.token=v; tinv.lastError=null; tinv.opsFrom={}; tinv.opsVer=0; tinv.lastTotal=null; tinv.lastDelta=null; tinv.totalKey=""; tinv.accs=[]; tinv.opsStat={};
+    if(tinv.auto==null) tinv.auto=true; saveTinv(); tinvSchedule(); render(); tinvSync(true)});
   const sb=document.getElementById("tinv-sync"); if(sb) sb.onclick=()=>tinvSync(true);
-  const au=document.getElementById("tinv-auto"); if(au) au.onchange=()=>{tinv.auto=au.checked;saveTinv();tinvSchedule()};
+  const au=document.getElementById("tinv-auto"); if(au) au.onchange=()=>{tinv.auto=au.checked;saveTinv();tinvSchedule();if(au.checked)tinvTick()};
   const off=document.getElementById("tinv-off"); if(off) off.onclick=()=>{
     if(!off.classList.contains("armed")){off.classList.add("armed");off.textContent="Отключить? Нажмите ещё раз";setTimeout(()=>{if(off.isConnected){off.classList.remove("armed");off.textContent="Отключить"}},3000);return}
     delete tinv.token; tinv.lastError=null; saveTinv(); tinvSchedule(); render(); toast("Токен удалён из браузера. Загруженные данные остались.")};
@@ -1210,7 +1543,8 @@ function bind(){
   main.querySelectorAll("tr[data-coll] [data-f]").forEach(el=>{
     el.addEventListener("change",()=>{const tr=el.closest("tr");const f=el.dataset.f;
       const v=el.type==="checkbox"?el.checked:el.type==="number"?num(el.value):el.value;
-      patch(tr.dataset.coll,tr.dataset.id,f==="on"?{off:!v}:{[f]:v})});
+      const extra=tr.dataset.coll==="accounts"&&(f==="value"||f==="cash")?{updated:new Date().toISOString()}:{};
+      patch(tr.dataset.coll,tr.dataset.id,f==="on"?{off:!v}:{[f]:v,...extra})});
   });
   main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
     if(b.classList.contains("armed")) remove(b.dataset.del,b.dataset.id);
@@ -1229,17 +1563,31 @@ function bind(){
     if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
     else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
   bindNew(); bindConnect();
-  const sc=document.getElementById("s-contrib"); if(sc){
-    sc.addEventListener("input",()=>saveSettings({contribution:num(sc.value)}));
-    document.getElementById("s-rate").addEventListener("input",e=>saveSettings({rate:num(e.target.value)}));
-    document.getElementById("s-base").addEventListener("change",e=>{saveSettings({base:e.target.value});render()});
-    const ub=document.getElementById("s-usebudget"); if(ub) ub.onclick=()=>{const rows=[...state.months].sort((a,b)=>a.id<b.id?1:-1).slice(0,6);
-      const v=Math.round(rows.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/rows.length/1000)*1000; sc.value=v; saveSettings({contribution:v})};
+  main.querySelectorAll("[data-pc]").forEach(b=>b.onclick=()=>{pfClass=b.dataset.pc;render()});
+  main.querySelectorAll("[data-dropman]").forEach(b=>b.onclick=()=>{
+    if(!b.classList.contains("armed")){b.dataset.label=b.textContent;b.classList.add("armed");b.textContent="Точно удалить? Нажмите ещё раз";
+      setTimeout(()=>{if(b.isConnected){b.classList.remove("armed");b.textContent=b.dataset.label}},4000);return}
+    const list=b.dataset.dropman==="dupes"?payoutDupes():manualPayouts();
+    removeMany("payouts",list.map(p=>p.id)); toast("Удалено ручных выплат: "+list.length)});
+  const sbase=document.getElementById("s-base"); if(sbase) sbase.addEventListener("change",e=>{saveSettings({base:e.target.value});render()});
+  const srate=document.getElementById("s-rate"); if(srate) srate.addEventListener("input",()=>saveSettings({rate:num(srate.value)}));
+  const hc=document.getElementById("h-c"); if(hc){
+    const hr=document.getElementById("h-range");
+    const setC=(v,from)=>{v=Math.max(0,Math.round(v)); if(from!=="input") hc.value=nf.format(v);
+      if(from!=="range"){if(v>+hr.max)hr.max=v;hr.value=v} saveSettings({contribution:v})};
+    hc.addEventListener("input",()=>setC(num(hc.value),"input"));
+    hc.addEventListener("change",()=>{hc.value=nf.format(num(hc.value))});
+    hc.addEventListener("focus",()=>hc.select());
+    hr.addEventListener("input",()=>setC(+hr.value,"range"));
+    main.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>setC(num(state.settings.contribution)+(+b.dataset.dc)));
+    const hb=document.getElementById("h-budget"); if(hb) hb.onclick=()=>{const rows=[...state.months].sort((a,b)=>a.id<b.id?1:-1).slice(0,6);
+      setC(Math.round(rows.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/rows.length/1000)*1000)};
+    const hres=document.getElementById("h-reset"); if(hres) hres.onclick=()=>{if(srate)srate.value=heroBase.r; saveSettings({rate:heroBase.r}); setC(heroBase.c)};
   }
 }
-document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;tab=b.dataset.tab;
-  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0})});
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)setTab(b.dataset.tab)});
+document.getElementById("h-sync").onclick=()=>setTab("connect");
+main.addEventListener("click",e=>{const b=e.target.closest("[data-goto]");if(b){e.preventDefault();setTab(b.dataset.goto)}});
 try{const t=localStorage.getItem("kapital-tab");if(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
 
 // header tools (static, wired once)
