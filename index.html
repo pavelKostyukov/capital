@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<title>Капитал Павла</title>
+<title>Капитал → 40 млн</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
@@ -125,10 +125,14 @@ svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
     </div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
-      <button role="tab" data-tab="accounts" aria-selected="false">Счета и имущество</button>
+      <button role="tab" data-tab="income" aria-selected="false">Пассив и дивиденды</button>
+      <button role="tab" data-tab="plans" aria-selected="false">Планы</button>
+      <button role="tab" data-tab="accounts" aria-selected="false">Счета</button>
       <button role="tab" data-tab="positions" aria-selected="false">Бумаги</button>
+      <button role="tab" data-tab="structure" aria-selected="false">Штанга</button>
       <button role="tab" data-tab="payouts" aria-selected="false">Выплаты</button>
       <button role="tab" data-tab="budget" aria-selected="false">Бюджет</button>
+      <button role="tab" data-tab="tasks" aria-selected="false">Налоги и задачи</button>
     </nav>
   </div>
 </header>
@@ -145,10 +149,16 @@ const PKIND={share:"Акция",bond:"Облигация",fund:"Фонд / ЗП�
 const PAYKIND={coupon:"Купон",dividend:"Дивиденд",rent:"Аренда / ЗПИФ",other:"Другое"};
 const MONTHS=["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
 const LADDER=[5e6,8e6,12e6,16e6,20e6,30e6,40e6];
-const BOOTSTRAP_DATA=null;
+const SAMPLE_DATA={"settings":{"contribution":150000,"rate":16},"accounts":[{"id":"demo-br","name":"Брокерский счёт (пример)","kind":"broker","value":2400000,"cash":20000,"note":"пример — замените своими цифрами","order":0},{"id":"demo-iis","name":"ИИС (пример)","kind":"iis","value":600000,"cash":5000,"note":"","order":1}],
+"positions":[{"id":"demo-p1","name":"ОФЗ 26238","ticker":"SU26238RMFS4","kind":"bond","account":"demo-br","cost":900000,"value":820000,"verdict":"buy"},{"id":"demo-p2","name":"Сбербанк","ticker":"SBER","kind":"share","account":"demo-br","cost":500000,"value":560000,"verdict":"hold"},{"id":"demo-p3","name":"ЗПИФ недвижимости","ticker":"","kind":"fund","account":"demo-br","cost":500000,"value":470000,"verdict":"hold"},{"id":"demo-p4","name":"Акция-аутсайдер","ticker":"","kind":"share","account":"demo-iis","cost":300000,"value":120000,"verdict":"sell"}],
+"payouts":[{"id":"demo-d1","month":"2026-07","name":"Сбербанк","kind":"dividend","amount":45000},{"id":"demo-c1","month":"2026-06","name":"ОФЗ 26238","kind":"coupon","amount":30000},{"id":"demo-c2","month":"2026-12","name":"ОФЗ 26238","kind":"coupon","amount":30000},{"id":"demo-r1","month":"2026-09","name":"ЗПИФ недвижимости","kind":"rent","amount":14000}],
+"months":[],"plans":[{"id":"demo-pl1","name":"Годовая премия","kind":"inflow","month":"2027-03","amount":800000,"cost":0,"note":"пример","off":false}],
+"tasks":[{"id":"demo-t1","title":"Внести свои счета или импортировать файл данных","group":"Сейчас","done":false}],"qual":[]};
 
 // Example state shown only until the store answers / when the store is unavailable.
-const state={settings:{contribution:200000,rate:17,base:"liquid"},accounts:[],positions:[],payouts:[],months:[],loaded:false};
+const DEFAULT_SETTINGS={contribution:200000,rate:17,base:"liquid",goalIncome:300000,divGrowth:0,indexation:5,reinvest:"all",horizon:5,taxRate:13,newYield:0,target:{ofz:40,div:15,reit:20,corp:10,cash:5,foreign:10,other:0}};
+const COLLS=["accounts","positions","payouts","months","plans","tasks","qual"];
+const state={settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),accounts:[],positions:[],payouts:[],months:[],plans:[],tasks:[],qual:[],loaded:false,demo:false};
 let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
 
 // ---------- formatting ----------
@@ -185,12 +195,13 @@ const monthsLabel=m=>{if(m==null)return "дальше 20 лет";const d=new Dat
 
 // ---------- storage ----------
 const LS="kapital-local-v1";
-function saveLocal(){if(persistOK)return;try{localStorage.setItem(LS,JSON.stringify({settings:state.settings,accounts:state.accounts,positions:state.positions,payouts:state.payouts,months:state.months}))}catch(e){}}
+function snapshot(){const o={settings:state.settings};for(const c of COLLS)o[c]=state[c];return o}
+function applyData(d){if(d.settings)state.settings={...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),...d.settings};for(const c of COLLS)if(Array.isArray(d[c]))state[c]=d[c]}
+function saveLocal(){if(persistOK)return;state.demo=false;try{localStorage.setItem(LS,JSON.stringify(snapshot()))}catch(e){}}
 function loadLocal(){
-  try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){Object.assign(state,s);return true}}catch(e){}
-  // First open: show the archived 20.10.2026 snapshot without a manual import.
-  if(BOOTSTRAP_DATA){Object.assign(state,JSON.parse(JSON.stringify(BOOTSTRAP_DATA)));return true}
-  return false;
+  try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s){applyData(s);return true}}catch(e){}
+  // First open on a new device: show sample data only. Real numbers never live in this file — import your JSON.
+  applyData(JSON.parse(JSON.stringify(SAMPLE_DATA)));state.demo=true;return true;
 }
 // One-time cleanup: drop account kinds that are no longer tracked (property, car, debt).
 function purgeLegacyAccounts(){
@@ -238,10 +249,10 @@ function renderHeader(){const t=totals();
 function render(){
   renderHeader();
   const banner=`<div class="banner" id="banner" hidden></div>`+(persistOK||!state.loaded?"":`<div class="banner" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <span style="margin-right:auto">Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
+    <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json — ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,accounts,positions,payouts,budget};
+  const views={overview,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab};
   main.innerHTML=banner+views[tab]();
   bind();
   if(tab==="overview") renderOverviewLive();
@@ -512,6 +523,245 @@ function budget(){
   <p class="note">Средняя сумма «Отложено» за последние 6 месяцев подставляется в прогноз цели кнопкой на «Обзоре».</p></div>`;
 }
 
+// ---------- helpers shared by new tabs ----------
+function last12ByKind(){
+  const now=new Date(), from=new Date(now.getFullYear(),now.getMonth()-11,1); const r={dividend:0,coupon:0,rent:0,other:0};
+  for(const p of state.payouts){const d=new Date(p.month+"-01"); if(d>=from) r[p.kind in r?p.kind:"other"]+=num(p.amount)}
+  return r;
+}
+function addMonths(m){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+m);return d}
+function monthIdx(ym){if(!ym)return 0;const [y,m]=String(ym).split("-").map(Number);const n=new Date();return Math.max(0,(y-n.getFullYear())*12+(m-1-n.getMonth()))}
+function lineChart(series,opts){
+  // series: [{pts:[{m,v}],color,label,dash}]
+  const W=640,H=200,pl=56,pr=12,pt=12,pb=26; const all=series.flatMap(s=>s.pts);
+  const maxM=Math.max(1,...all.map(p=>p.m)), maxV=Math.max(1,...all.map(p=>p.v),opts&&opts.goal||0)*1.08;
+  const x=m=>pl+(W-pl-pr)*m/maxM, y=v=>pt+(H-pt-pb)*(1-v/maxV);
+  const raw=maxV/4,p10=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,5,10].map(q=>q*p10).find(s=>s>=raw);
+  let g="";for(let v=0;v<=maxV;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end">${opts&&opts.fmt?opts.fmt(v):k(v)}</text>`;
+  let xt="";const ys=Math.ceil(maxM/12);for(let yr=0;yr<=ys;yr+=Math.max(1,Math.round(ys/6))){const m=yr*12;if(m>maxM)break;xt+=`<text x="${x(m)}" y="${H-6}" text-anchor="middle">${new Date().getFullYear()+yr}</text>`}
+  const goal=opts&&opts.goal?`<line x1="${pl}" x2="${W-pr}" y1="${y(opts.goal)}" y2="${y(opts.goal)}" stroke="var(--brass)" stroke-dasharray="4 4"/><text x="${W-pr}" y="${y(opts.goal)-5}" text-anchor="end" style="fill:var(--brass)">${esc(opts.goalLabel||"")}</text>`:"";
+  const lines=series.map(s=>`<path d="${s.pts.map((p,i)=>(i?"L":"M")+x(p.m).toFixed(1)+" "+y(p.v).toFixed(1)).join(" ")}" fill="none" stroke="${s.color}" stroke-width="2" ${s.dash?'stroke-dasharray="5 4"':""}/>`).join("");
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block;margin-top:10px" role="img" aria-label="${esc(opts&&opts.aria||"График")}">${g}${xt}${goal}${lines}</svg></div>
+  <div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join("")}</div>`;
+}
+
+// ----- Passive income & dividend growth (по образцу «Цель → рост дивидендов» renta.life) -----
+function incomeBase(){
+  const t=totals(), s=state.settings, by=last12ByKind();
+  const D=by.dividend, O=by.coupon+by.rent+by.other, V=t.liquid;
+  const curYield=V>0&&(D+O)>0?(D+O)/V*100:null;
+  return {D,O,V,curYield,divShare:(D+O)>0?D/(D+O):0.3,newYield:num(s.newYield)||12};
+}
+function incomeSim(years,growthPct){
+  const s=state.settings,b=incomeBase();
+  const gM=Math.pow(1+growthPct/100,1/12), y=b.newYield/100, idx=num(s.indexation)/100, M=num(s.contribution);
+  let D=b.D,O=b.O,hit=null,total=0,lastYear=0; const pts=[{m:0,v:(D+O)/12}];
+  for(let m=1;m<=years*12;m++){
+    D*=gM; const inc=(D+O)/12; total+=inc; if(m>years*12-12) lastYear+=inc;
+    if(hit==null&&inc>=num(s.goalIncome)) hit=m;
+    const c=M*Math.pow(1+idx,Math.floor((m-1)/12)); const invest=c+(s.reinvest==="all"?inc:0);
+    D+=invest*y*b.divShare; O+=invest*y*(1-b.divShare);
+    pts.push({m,v:inc});
+  }
+  return {avg:lastYear/12,total,hit,pts};
+}
+function hitIncome(growthPct){const r=incomeSim(30,growthPct);return r.hit}
+function income(){
+  const s=state.settings,b=incomeBase(),H=num(s.horizon)||5,g=num(s.divGrowth);
+  const base=incomeSim(H,0), grow=incomeSim(H,g);
+  const warn=[];
+  if(!b.D) warn.push("В выплатах за последние 12 месяцев нет дивидендов — рост не на что применить. Внесите дивиденды во вкладке «Выплаты».");
+  if(!b.V) warn.push("Ликвидный портфель пустой — заполните счета.");
+  const hb=hitIncome(0), hg=hitIncome(g);
+  return `<section class="grid kpis">
+    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub((b.D+b.O)/12)}</div><div class="n">в мес, по выплатам за 12 мес</div></div>
+    <div class="panel kpi"><small>Дивиденды / купоны и фонды</small><div class="v">${k(b.D)} / ${k(b.O)}</div><div class="n">за 12 мес, ₽</div></div>
+    <div class="panel kpi"><small>Доходность выплат</small><div class="v">${b.curYield==null?"—":b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})+"%"}</div><div class="n">выплаты за год / ликвидный портфель${b.curYield!=null&&b.curYield<8?" — занижена: свободный кэш и не все выплаты внесены":""}</div></div>
+    <div class="panel kpi"><small>Цель по пассиву</small><div class="v">${rub(num(s.goalIncome))}</div><div class="n">${hg?"при текущем сценарии: "+monthsLabel(hg):"дальше 30 лет"}</div></div>
+  </section>
+  <div class="panel">
+    <h2>Как рост дивидендов влияет на цель <span class="sub">сценарий, а не прогноз выплат</span></h2>
+    <div class="scen">
+      <label class="f">Цель, пассив ₽/мес<input id="i-goal" type="number" step="10000" value="${num(s.goalIncome)}"></label>
+      <label class="f">Рост дивидендов акций, %/год<input id="i-g" type="number" step="1" value="${g}"></label>
+      <label class="f">Пополнение, ₽/мес<input id="i-c" type="number" step="10000" value="${num(s.contribution)}"></label>
+      <label class="f">Индексация пополнений, %/год<input id="i-idx" type="number" step="1" value="${num(s.indexation)}"></label>
+      <label class="f">Доходность новых покупок, %<input id="i-y" type="number" step="0.5" value="${b.newYield}"></label>
+      <label class="f">Выплаты<select id="i-re"><option value="all" ${s.reinvest!=="none"?"selected":""}>Реинвестировать</option><option value="none" ${s.reinvest==="none"?"selected":""}>Тратить</option></select></label>
+    </div>
+    <div class="seg" role="group" aria-label="Горизонт">${[3,5,10].map(v=>`<button data-hz="${v}" aria-pressed="${H===v}">${v} лет</button>`).join("")}</div>
+    ${warn.map(w=>`<div class="banner" style="margin-top:12px">${esc(w)}</div>`).join("")}
+    <div class="grid kpis" style="margin-top:12px">
+      <div class="panel kpi"><small>Без роста дивидендов</small><div class="v">${rub(base.avg)}</div><div class="n">в среднем в мес за ${H}-й год · цель ${hb?monthsLabel(hb):"дальше 30 лет"}</div></div>
+      <div class="panel kpi"><small>С ростом ${g>0?"+":""}${g}% в год</small><div class="v ${grow.avg>=base.avg?"up":"down"}">${rub(grow.avg)}</div><div class="n">${grow.avg>=base.avg?"+":""}${rub(grow.avg-base.avg)} в мес · цель ${hg?monthsLabel(hg):"дальше 30 лет"}</div></div>
+      <div class="panel kpi"><small>Разница в сроке</small><div class="v">${hb&&hg?(hb-hg>0?"−"+durLabel(hb-hg):hb-hg<0?"+"+durLabel(hg-hb):"0"):"—"}</div><div class="n">до цели ${rub(num(s.goalIncome))}/мес</div></div>
+    </div>
+    ${lineChart([{pts:base.pts.filter(p=>p.m%3===0),color:"var(--faint)",label:"без роста",dash:true},{pts:grow.pts.filter(p=>p.m%3===0),color:"var(--accent)",label:"с ростом "+g+"%"}],{goal:num(s.goalIncome),goalLabel:"цель "+k(num(s.goalIncome)),aria:"Пассивный доход в месяц"})}
+    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Горизонт</th><th class="num">Без роста, ₽/мес</th><th class="num">С ростом, ₽/мес</th><th class="num">Разница</th><th class="num">Получено выплат за срок</th></tr></thead><tbody>
+    ${[3,5,10].map(h=>{const a=incomeSim(h,0),c=incomeSim(h,g);return `<tr><td>${h} лет</td><td class="num">${rub(a.avg)}</td><td class="num">${rub(c.avg)}</td><td class="num ${c.avg-a.avg>=0?"up":"down"}">${c.avg-a.avg>=0?"+":""}${rub(c.avg-a.avg)}</td><td class="num">${mln(c.total)}</td></tr>`}).join("")}
+    </tbody></table></div>
+    <p class="note">Цель «точка свободы» — около 300 тыс. ₽/мес (капитал 25–30 млн). Рост применяется только к дивидендам акций. Купоны и выплаты фондов на единицу бумаги постоянны, цены и состав портфеля не меняются. Новые покупки приносят «доходность новых покупок» в той же пропорции дивиденды/купоны, что и сейчас. Пополнения растут на индексацию раз в год. Процент задаёте вы: это сценарий, а не исторический рост и не обещание выплат.</p>
+  </div>
+  <div class="panel"><h2>Пассив по этапам капитала <span class="sub">ориентир до налога</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>Капитал</th><th class="num">при 12%</th><th class="num">при 15%</th><th class="num">при 18%</th></tr></thead><tbody>
+    ${[10e6,20e6,25e6,30e6,40e6,60e6].map(v=>`<tr><td>${v/1e6} млн</td><td class="num">${rub(v*.12/12)}</td><td class="num">${rub(v*.15/12)}</td><td class="num">${rub(v*.18/12)}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+}
+
+// ----- Plans: asset sales & big cash flows -----
+const PLANKIND={sell:"Продажа актива",inflow:"Поступление",outflow:"Крупная трата"};
+function planNet(p){const a=num(p.amount);return p.kind==="outflow"?-a:a}
+function planTaxes(list){
+  // НДФЛ: прибыль и убыток от продаж зачитываются внутри одного года
+  const by={}; for(const p of list){if(p.kind!=="sell"||p.off||!num(p.cost))continue;const y=String(p.month||"").slice(0,4)||"—";by[y]=(by[y]||0)+num(p.amount)-num(p.cost)}
+  const rate=num(state.settings.taxRate)/100; const res={}; for(const y in by) res[y]={gain:by[y],tax:Math.max(0,by[y])*rate}; return res;
+}
+function projectLumps(lumps,monthly,ratePct,targets){
+  const r=ratePct/100/12; let L=totals().liquid; const pts=[{m:0,v:L}],hit={};
+  for(let m=0;m<=240;m++){ if(m){L=L*(1+r)+monthly} for(const l of lumps) if(l.m===m) L+=l.v; if(m&&m%3===0)pts.push({m,v:L});
+    for(const t of targets) if(hit[t]==null&&L>=t) hit[t]=m; }
+  return {pts,hit};
+}
+function trimPts(pts,until){return pts.filter(p=>p.m<=until)}
+function plans(){
+  const s=state.settings, list=[...state.plans].sort((a,b)=>(a.month||"")<(b.month||"")?-1:1), act=list.filter(p=>!p.off);
+  const taxes=planTaxes(list), taxTotal=Object.values(taxes).reduce((x,t)=>x+t.tax,0);
+  const lumps=act.map(p=>({m:monthIdx(p.month),v:planNet(p)}));
+  for(const y in taxes) if(taxes[y].tax) lumps.push({m:monthIdx((+y+1)+"-07"),v:-taxes[y].tax});
+  const net=lumps.reduce((x,l)=>x+l.v,0);
+  const t=totals(), next=LADDER.find(v=>v>t.liquid)||40e6, T=[next,20e6,40e6].filter((v,i,a)=>a.indexOf(v)===i);
+  const a=projectLumps([],num(s.contribution),num(s.rate),T), b=projectLumps(lumps,num(s.contribution),num(s.rate),T);
+  const yld=incomeBase().newYield;
+  const sellPos=state.positions.filter(p=>p.verdict==="sell"&&num(p.value)>0&&!state.plans.some(x=>x.pos===p.id));
+  const noCost=act.filter(p=>p.kind==="sell"&&!num(p.cost)).length;
+  const until=Math.min(240,Math.max(36,...T.map(v=>Math.max(a.hit[v]||0,b.hit[v]||0)))+12);
+  return `<section class="grid kpis">
+    <div class="panel kpi"><small>Чистый эффект плана</small><div class="v ${net>=0?"up":"down"}">${net>=0?"+":""}${mln(net)}</div><div class="n">в ликвидный портфель, после налога</div></div>
+    <div class="panel kpi"><small>Налог с продаж</small><div class="v">${rub(taxTotal)}</div><div class="n">${s.taxRate}% с прибыли за вычетом убытков года</div></div>
+    <div class="panel kpi"><small>Пассив от плана</small><div class="v">${net>=0?"+":""}${rub(net*yld/100/12)}</div><div class="n">в мес при ${yld}% годовых</div></div>
+    <div class="panel kpi"><small>Этап ${next/1e6} млн</small><div class="v">${b.hit[next]!=null&&a.hit[next]!=null?(a.hit[next]-b.hit[next]>0?"−"+durLabel(a.hit[next]-b.hit[next]):a.hit[next]-b.hit[next]<0?"+"+durLabel(b.hit[next]-a.hit[next]):"без изменений"):"—"}</div><div class="n">${fmtHit(b.hit[next])}</div></div>
+  </section>
+  <div class="panel"><h2>Планы и сценарий продажи активов <span class="sub">что продаю, что поступит, что потрачу</span></h2>
+  ${list.length?`<div class="tablewrap"><table><thead><tr><th>В расчёте</th><th>Что</th><th>Вид</th><th>Месяц</th><th class="num">Сумма, ₽</th><th class="num">Цена покупки, ₽</th><th class="num">Результат</th><th>Заметка</th><th></th></tr></thead><tbody>
+  ${list.map(p=>{const g=p.kind==="sell"&&num(p.cost)?num(p.amount)-num(p.cost):null;return `<tr data-coll="plans" data-id="${p.id}" ${p.off?'style="opacity:.55"':""}>
+    <td><input type="checkbox" data-f="on" ${p.off?"":"checked"} aria-label="Учитывать"></td>
+    <td style="min-width:160px"><input data-f="name" value="${esc(p.name)}" aria-label="Что"></td>
+    <td><select data-f="kind">${Object.entries(PLANKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
+    <td><input data-f="month" type="month" value="${esc(p.month||"")}"></td>
+    <td class="num" style="min-width:110px"><input data-f="amount" type="number" step="1000" value="${num(p.amount)}"></td>
+    <td class="num" style="min-width:110px">${p.kind==="sell"?`<input data-f="cost" type="number" step="1000" value="${num(p.cost)}">`:`<span class="muted">—</span>`}</td>
+    <td class="num ${g==null?"":g>=0?"up":"down"}">${g==null?(p.kind==="sell"?'<span class="muted" style="font-size:12px">нет цены покупки</span>':"—"):(g>=0?"+":"")+rub(g)}</td>
+    <td><input data-f="note" value="${esc(p.note)}"></td>
+    <td><button class="btn ghost" data-del="plans" data-id="${p.id}">✕</button></td></tr>`}).join("")}
+  </tbody></table></div>`:`<div class="empty">Добавьте продажу актива, поступление (премия, наследство, распродажа товара) или крупную трату.</div>`}
+  <div class="toolbar">
+    <button class="btn" data-addplan="sell">+ Продажа актива</button><button class="btn" data-addplan="inflow">+ Поступление</button><button class="btn" data-addplan="outflow">+ Крупная трата</button>
+    ${sellPos.length?`<button class="btn primary" id="plan-fromsell">Добавить бумаги «Продать» (${sellPos.length})</button>`:""}
+  </div>
+  ${noCost?`<div class="banner" style="margin-top:12px">${noCost} ${noCost===1?"продажа":"продажи"} без цены покупки — налог по ним не посчитан. Для бумаг возьмите «Вложено» из приложения брокера.</div>`:""}
+  ${Object.keys(taxes).length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Год продаж</th><th class="num">Прибыль − убытки</th><th class="num">Налог</th></tr></thead><tbody>${Object.entries(taxes).map(([y,x])=>`<tr><td>${y}</td><td class="num ${x.gain>=0?"up":"down"}">${rub(x.gain)}</td><td class="num">${rub(x.tax)}</td></tr>`).join("")}</tbody></table></div>`:""}
+  ${lineChart([{pts:trimPts(a.pts,until),color:"var(--faint)",label:"без плана",dash:true},{pts:trimPts(b.pts,until),color:"var(--accent)",label:"с планом"}],{goal:Math.max(...T),goalLabel:Math.max(...T)/1e6+" млн",fmt:v=>(v/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн",aria:"Ликвидный портфель с планом и без"})}
+  <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Этап</th><th>Без плана</th><th>С планом</th></tr></thead><tbody>
+  ${T.map(v=>`<tr><td>${v/1e6} млн</td><td>${fmtHit(a.hit[v])}</td><td>${fmtHit(b.hit[v])}</td></tr>`).join("")}</tbody></table></div>
+  <p class="note">Продажи и поступления попадают в ликвидный портфель в выбранном месяце, траты списываются из него. Налог считается по году: прибыль от продаж минус убытки (налоговая чистка снижает налог), платится в июле следующего года. Пополнение ${rub(num(s.contribution))}/мес и доходность ${s.rate}% — из «Обзора». Снимите галочку, чтобы сравнить сценарий без строки.</p></div>`;
+}
+
+// ----- Target structure ("штанга") -----
+const BLOCKS={ofz:"Длинные ОФЗ",div:"Дивидендные акции",reit:"ЗПИФы недвижимости",corp:"Корп. облигации",cash:"LQDT / кэш",foreign:"Зарубежные",other:"Прочее"};
+function guessBlock(p){
+  if(p.block) return p.block; const t=String(p.ticker||"").toUpperCase(), n=String(p.name||"").toLowerCase();
+  const acc=state.accounts.find(a=>a.id===p.account); if(acc&&acc.kind==="foreign") return "foreign";
+  if(/^SU\d|офз/.test(t+" "+n)) return "ofz"; if(/LQDT|ликвидн/.test(t+" "+n)) return "cash";
+  if(p.kind==="bond") return "corp"; if(p.kind==="share") return "div";
+  if(p.kind==="fund"&&/зпиф|акцент|рентн|парус|недвиж/.test(n)) return "reit"; if(p.kind==="fund"&&/облиг|кредит|поток|bond/.test(n)) return "corp"; if(p.kind==="fund") return "div";
+  return "other";
+}
+function structure(){
+  const tg=state.settings.target||{}, t=totals(); const fact={}; Object.keys(BLOCKS).forEach(b=>fact[b]=0);
+  for(const p of state.positions) fact[guessBlock(p)]+=num(p.value);
+  const cash=state.accounts.filter(a=>LIQUID.includes(a.kind)).reduce((x,a)=>x+num(a.cash),0); fact.cash+=cash;
+  const inPos=Object.values(fact).reduce((x,v)=>x+v,0), unassigned=Math.max(0,t.liquid-inPos), base=Math.max(1,inPos);
+  const tsum=Object.values(tg).reduce((x,v)=>x+num(v),0);
+  const pos=[...state.positions].sort((a,b)=>num(b.value)-num(a.value));
+  return `<div class="panel"><h2>Целевая структура — «модифицированная штанга» <span class="sub">факт по разнесённым бумагам и свободным деньгам</span></h2>
+  ${unassigned>1000?`<div class="banner" style="margin-bottom:12px">Не разнесено по бумагам: ${mln(unassigned)} из ${mln(t.liquid)}. Заполните «Стоит сейчас» во вкладке «Бумаги» — тогда факт будет точным.</div>`:""}
+  <div class="tablewrap"><table><thead><tr><th>Блок</th><th class="num">Цель, %</th><th class="num">Факт, %</th><th class="num">Факт, ₽</th><th>Отклонение</th><th class="num">Докупить / сократить</th></tr></thead><tbody>
+  ${Object.entries(BLOCKS).map(([b,l])=>{const f=fact[b]/base*100,goal=num(tg[b]),d=f-goal,need=goal/100*base-fact[b];
+    return `<tr><td>${l}</td><td class="num" style="width:90px"><input data-tg="${b}" type="number" step="1" value="${goal}"></td><td class="num">${f.toFixed(1)}%</td><td class="num">${rub(fact[b])}</td>
+    <td style="min-width:160px"><div class="bar" style="position:relative"><i style="width:${Math.min(100,f)}%" class="${Math.abs(d)>5?"brass":""}"></i><span style="position:absolute;top:-2px;bottom:-2px;left:${Math.min(100,goal)}%;width:2px;background:var(--ink)"></span></div></td>
+    <td class="num ${need>=0?"up":"down"}">${Math.abs(need)<1000?"—":(need>0?"+":"−")+rub(Math.abs(need))}</td></tr>`}).join("")}
+  </tbody><tfoot><tr><td>Итого</td><td class="num ${Math.round(tsum)!==100?"down":""}">${tsum}%</td><td class="num">100%</td><td class="num">${rub(inPos)}</td><td colspan="2"></td></tr></tfoot></table></div>
+  <p class="note">Чёрная риска — цель, полоса — факт; жёлтая полоса — отклонение больше 5 п.п. Цель по умолчанию: ОФЗ 40%, дивидендные акции 15%, ЗПИФы 20%, корпоративные облигации 10%, кэш 5%, зарубежные 10%. Целевая доходность 17–20% не гарантирована, предел просадки −15–20%.</p></div>
+  <div class="panel"><h2>Блок для каждой бумаги <span class="sub">определяется автоматически, можно поправить</span></h2>
+  <div class="tablewrap"><table><thead><tr><th>Бумага</th><th>Тикер</th><th class="num">Стоит</th><th>Блок</th></tr></thead><tbody>
+  ${pos.map(p=>`<tr data-coll="positions" data-id="${p.id}"><td>${esc(p.name)}</td><td class="muted">${esc(p.ticker)}</td><td class="num">${num(p.value)?rub(num(p.value)):"—"}</td>
+  <td><select data-f="block">${Object.entries(BLOCKS).map(([v,l])=>`<option value="${v}" ${guessBlock(p)===v?"selected":""}>${l}${!p.block&&guessBlock(p)===v?" (авто)":""}</option>`).join("")}</select></td></tr>`).join("")}
+  </tbody></table></div></div>`;
+}
+
+// ----- Taxes, qualified-investor tracker, tasks -----
+let qualYear=new Date().getFullYear();
+function tasksTab(){
+  const rate=num(state.settings.taxRate)/100;
+  const sell=state.positions.filter(p=>p.verdict==="sell").sort((a,b)=>(num(b.cost)-num(b.value))-(num(a.cost)-num(a.value)));
+  const loss=sell.filter(p=>!p.sold).reduce((x,p)=>x+Math.max(0,num(p.cost)-num(p.value)),0), soldN=sell.filter(p=>p.sold).length;
+  const qm={}; state.qual.forEach(q=>qm[q.id]=q);
+  const quarters=[0,1,2,3].map(q=>{let to=0,tr=0;for(let i=0;i<3;i++){const id=qualYear+"-"+String(q*3+i+1).padStart(2,"0");if(qm[id]){to+=num(qm[id].turnover);tr+=num(qm[id].trades)}}return {to,tr}});
+  const yTo=quarters.reduce((x,q)=>x+q.to,0), qOK=quarters.filter(q=>q.tr>=10).length;
+  const groups=[...new Set(state.tasks.map(t=>t.group||"Без срока"))];
+  const open=state.tasks.filter(t=>!t.done).length;
+  return `<section class="grid kpis">
+    <div class="panel kpi"><small>Налоговая чистка</small><div class="v">${soldN} / ${sell.length}</div><div class="n">продано позиций с решением «Продать»</div></div>
+    <div class="panel kpi"><small>Убыток к фиксации</small><div class="v ${loss>0?"down":""}">${rub(loss)}</div><div class="n">экономия налога до ${rub(loss*rate)}</div></div>
+    <div class="panel kpi"><small>Квал: оборот ${qualYear}</small><div class="v">${mln(yTo)}</div><div class="n">из 6 млн · кварталов с 10+ сделками: ${qOK}/4</div></div>
+    <div class="panel kpi"><small>Задачи</small><div class="v">${open}</div><div class="n">открыто из ${state.tasks.length}</div></div>
+  </section>
+  <div class="panel"><h2>Налоговая чистка <span class="sub">по 1–2 позиции в месяц; убыток уменьшает налог с будущей прибыли</span></h2>
+  ${sell.length?`<div class="tablewrap"><table><thead><tr><th>Продано</th><th>Бумага</th><th>Счёт</th><th class="num">Вложено</th><th class="num">Стоит</th><th class="num">Убыток</th><th class="num">Экономия налога</th></tr></thead><tbody>
+  ${sell.map(p=>{const l=num(p.cost)-num(p.value);return `<tr data-coll="positions" data-id="${p.id}" ${p.sold?'style="opacity:.55"':""}><td><input type="checkbox" data-f="sold" ${p.sold?"checked":""} aria-label="Продано"></td><td>${esc(p.name)} <span class="muted">${esc(p.ticker)}</span></td>
+  <td class="muted">${esc((state.accounts.find(a=>a.id===p.account)||{}).name||"—")}</td><td class="num">${num(p.cost)?rub(num(p.cost)):"—"}</td><td class="num">${num(p.value)?rub(num(p.value)):"—"}</td>
+  <td class="num ${l>0?"down":""}">${num(p.cost)?rub(l):'<span class="muted">внесите «Вложено»</span>'}</td><td class="num">${l>0?rub(l*rate):"—"}</td></tr>`}).join("")}
+  </tbody></table></div>`:`<div class="empty">Поставьте решение «Продать» бумагам во вкладке «Бумаги» — они появятся здесь.</div>`}
+  <p class="note">Ставка НДФЛ ${state.settings.taxRate}% (поменять: <input id="t-rate" type="number" step="1" value="${num(state.settings.taxRate)}" style="width:60px">%). Убыток зачитывается против прибыли того же года; перенос на будущие годы — через 3-НДФЛ до 30 апреля.</p></div>
+  <div class="panel"><h2>Квалифицированный инвестор через оборот <span class="seg" role="group" aria-label="Год">${[qualYear-1,qualYear,qualYear+1].map(y=>`<button data-qy="${y}" aria-pressed="${y===qualYear}">${y}</button>`).join("")}</span></h2>
+  <div class="tablewrap"><table><thead><tr><th>Квартал</th><th>Месяц</th><th class="num">Оборот, ₽</th><th class="num">Сделок</th><th>Статус квартала</th></tr></thead><tbody>
+  ${quarters.map((q,qi)=>[0,1,2].map(i=>{const id=qualYear+"-"+String(qi*3+i+1).padStart(2,"0"),r=qm[id]||{};
+    return `<tr data-qual="${id}">${i===0?`<td rowspan="3"><b>${qi+1} кв.</b></td>`:""}<td>${MONTHS[qi*3+i]}</td>
+    <td class="num"><input data-qf="turnover" type="number" step="10000" value="${num(r.turnover)}"></td><td class="num" style="width:90px"><input data-qf="trades" type="number" step="1" value="${num(r.trades)}"></td>
+    ${i===0?`<td rowspan="3"><span class="pill ${q.tr>=10?"buy":q.tr?"watch":"sell"}">${q.tr>=10?"ок":q.tr?"мало сделок":"нет сделок"}</span> <span class="muted">${q.tr} сд. · ${mln(q.to)}</span></td>`:""}</tr>`}).join("")).join("")}
+  </tbody></table></div>
+  <div class="bar" style="margin-top:12px"><i style="width:${Math.min(100,yTo/6e6*100)}%"></i></div>
+  <p class="note">Условие: оборот от 6 млн ₽ за 4 квартала и сделки каждый месяц (около 10 в квартал). Квал открывает ЗПИФы для квалов вроде «Паруса», но не иностранные рынки сам по себе.</p></div>
+  <div class="panel"><h2>Задачи</h2>
+  ${state.tasks.length?groups.map(g=>`<div style="font-weight:600;margin:12px 0 6px;font-size:13px">${esc(g)}</div>
+    <div class="tablewrap"><table><tbody>${state.tasks.filter(t=>(t.group||"Без срока")===g).map(t=>`<tr data-coll="tasks" data-id="${t.id}" ${t.done?'style="opacity:.55"':""}>
+    <td style="width:32px"><input type="checkbox" data-f="done" ${t.done?"checked":""} aria-label="Готово"></td><td><input data-f="title" value="${esc(t.title)}" ${t.done?'style="text-decoration:line-through"':""}></td>
+    <td style="width:170px"><input data-f="group" value="${esc(t.group)}" aria-label="Срок"></td><td style="width:40px"><button class="btn ghost" data-del="tasks" data-id="${t.id}">✕</button></td></tr>`).join("")}</tbody></table></div>`).join(""):`<div class="empty">Задач пока нет.</div>`}
+  <form class="addform" id="taskform"><label class="f">Задача<input id="t-title" required style="width:320px" placeholder="Открыть зарубежный счёт"></label>
+  <label class="f">Срок / группа<input id="t-group" list="t-groups" placeholder="До конца года"></label><datalist id="t-groups">${groups.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+  <button class="btn primary" type="submit">Добавить</button></form></div>`;
+}
+function bindNew(){
+  const sv=(id,key,isNum=true)=>{const el=document.getElementById(id);if(el)el.addEventListener("change",()=>{saveSettings({[key]:isNum?num(el.value):el.value});render()})};
+  sv("i-goal","goalIncome");sv("i-g","divGrowth");sv("i-c","contribution");sv("i-idx","indexation");sv("i-y","newYield");sv("i-re","reinvest",false);sv("t-rate","taxRate");
+  main.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{saveSettings({horizon:+b.dataset.hz});render()});
+  main.querySelectorAll("[data-qy]").forEach(b=>b.onclick=()=>{qualYear=+b.dataset.qy;render()});
+  main.querySelectorAll("[data-tg]").forEach(el=>el.addEventListener("change",()=>{saveSettings({target:{...(state.settings.target||{}),[el.dataset.tg]:num(el.value)}});render()}));
+  main.querySelectorAll("[data-addplan]").forEach(b=>b.onclick=()=>{const kd=b.dataset.addplan;const d=new Date();d.setMonth(d.getMonth()+1);
+    add("plans",{name:PLANKIND[kd],kind:kd,month:d.toISOString().slice(0,7),amount:0,cost:0,note:"",off:false})});
+  const fs=document.getElementById("plan-fromsell"); if(fs) fs.onclick=()=>{const d=new Date();let i=0;
+    const skipped=state.positions.filter(p=>p.verdict==="sell"&&!num(p.value)).length;
+    for(const p of state.positions.filter(p=>p.verdict==="sell"&&num(p.value)>0&&!state.plans.some(x=>x.pos===p.id))){const m=new Date(d.getFullYear(),d.getMonth()+1+Math.floor(i++/2),1);
+      add("plans",{name:p.name,kind:"sell",month:m.getFullYear()+"-"+String(m.getMonth()+1).padStart(2,"0"),amount:num(p.value),cost:num(p.cost),note:"налоговая чистка",off:false,pos:p.id})}
+    toast("Добавлено в план по 2 бумаги в месяц"+(skipped?". Без суммы пропущено: "+skipped+" — заполните «Стоит сейчас» в «Бумагах»":""))};
+  main.querySelectorAll("tr[data-qual] [data-qf]").forEach(el=>el.addEventListener("change",()=>{
+    const id=el.closest("tr").dataset.qual; let r=state.qual.find(q=>q.id===id); const f={[el.dataset.qf]:num(el.value)};
+    if(r){Object.assign(r,f)}else{r={id,turnover:0,trades:0,...f};state.qual.push(r)}
+    const {id:_,...body}=r; if(db) db.collection("qual").doc(id).set(body).catch(err); else saveLocal(); render()}));
+  const tf=document.getElementById("taskform"); if(tf) tf.addEventListener("submit",e=>{e.preventDefault();
+    add("tasks",{title:document.getElementById("t-title").value.trim(),group:document.getElementById("t-group").value.trim(),done:false})});
+}
+
 // ---------- modal, toast, file import, calculator ----------
 let modalBack=null;
 function openModal(html){closeModal();modalBack=document.createElement("div");modalBack.className="modal-back";
@@ -756,16 +1006,17 @@ function openCalc(){
 // ---------- events ----------
 function bind(){
   const ex=document.getElementById("exp"); if(ex) ex.onclick=()=>{
-    const data=JSON.stringify({settings:state.settings,accounts:state.accounts,positions:state.positions,payouts:state.payouts,months:state.months},null,2);
+    const data=JSON.stringify(snapshot(),null,2);
     const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
     a.download="kapital-"+new Date().toISOString().slice(0,10)+".json"; document.body.appendChild(a); a.click(); a.remove();};
   const im=document.getElementById("imp"); if(im) im.onchange=()=>{const f=im.files[0]; if(!f) return; const r=new FileReader();
-    r.onload=()=>{try{const d=JSON.parse(r.result); for(const key of ["settings","accounts","positions","payouts","months"]) if(d[key]) state[key]=d[key];
-      saveLocal(); render();}catch(e){const b=document.getElementById("banner"); b.hidden=false; b.textContent="Не удалось прочитать файл: выберите JSON, сохранённый кнопкой «Экспорт»."}};
+    r.onload=()=>{try{const d=JSON.parse(r.result); if(!d||typeof d!=="object"||!Array.isArray(d.accounts)) throw 0; applyData(d);
+      saveLocal(); render(); toast("Данные загружены");}catch(e){const b=document.getElementById("banner"); b.hidden=false; b.textContent="Не удалось прочитать файл: выберите JSON, сохранённый кнопкой «Экспорт»."}};
     r.readAsText(f);};
   main.querySelectorAll("tr[data-coll] [data-f]").forEach(el=>{
     el.addEventListener("change",()=>{const tr=el.closest("tr");const f=el.dataset.f;
-      const v=el.type==="number"?num(el.value):el.value; patch(tr.dataset.coll,tr.dataset.id,{[f]:v})});
+      const v=el.type==="checkbox"?el.checked:el.type==="number"?num(el.value):el.value;
+      patch(tr.dataset.coll,tr.dataset.id,f==="on"?{off:!v}:{[f]:v})});
   });
   main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
     if(b.classList.contains("armed")) remove(b.dataset.del,b.dataset.id);
@@ -783,6 +1034,7 @@ function bind(){
     const ex=state.months.find(m=>m.id===id);
     if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
     else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
+  bindNew();
   const sc=document.getElementById("s-contrib"); if(sc){
     sc.addEventListener("input",()=>saveSettings({contribution:num(sc.value)}));
     document.getElementById("s-rate").addEventListener("input",e=>saveSettings({rate:num(e.target.value)}));
@@ -809,10 +1061,10 @@ render();
 (async()=>{
   try{ db = window.claude && window.claude.use ? await window.claude.use("db") : null }catch(e){ db=null }
   if(!db){ loadLocal(); purgeLegacyAccounts(); state.loaded=true; persistOK=false; render(); return }
-  persistOK=true; let first={settings:false,accounts:false,positions:false,payouts:false,months:false};
+  persistOK=true; let first={settings:false}; COLLS.forEach(c=>first[c]=false);
   const ready=()=>{if(!state.loaded&&Object.values(first).every(Boolean)){state.loaded=true;purgeLegacyAccounts();render()}else if(state.loaded)schedule()};
-  db.doc("settings/main").onSnapshot(s=>{if(s.exists)Object.assign(state.settings,s.data());first.settings=true;ready()},()=>{first.settings=true;ready()});
-  for(const c of ["accounts","positions","payouts","months"]){
+  db.doc("settings/main").onSnapshot(s=>{if(s.exists)Object.assign(state.settings,s.data());state.demo=false;first.settings=true;ready()},()=>{first.settings=true;ready()});
+  for(const c of COLLS){
     db.collection(c).onSnapshot(snap=>{
       // keep local edits that are still debouncing
       state[c]=snap.docs.map(d=>{const loc=state[c].find(x=>x.id===d.id);return timers[c+d.id]&&loc?loc:{id:d.id,...d.data()}});
