@@ -92,6 +92,9 @@ td.v-cell select{font-weight:500}
 .alloc{display:grid;gap:8px}
 .alloc .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:13px}
 .alloc .bar{grid-column:1/-1;height:6px}
+.alloc .row .sm{display:block;font-size:12px;color:var(--faint);margin-top:1px}
+.alloc .row.tot{border-top:1px solid var(--line);padding-top:8px;font-weight:600}
+.alloc .row b.big2{font:500 20px var(--display);letter-spacing:-.02em}
 svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
@@ -163,7 +166,7 @@ main a{color:var(--accent)}
       <button class="sync" id="h-sync" type="button" hidden title="Открыть «Подключения»"><i></i><span id="h-sync-t">Т-Банк</span></button>
       <div class="hstat"><small>Чистый капитал</small><b id="h-nw">—</b></div>
       <div class="hstat"><small>Ликвидно</small><b id="h-liq">—</b></div>
-      <div class="hstat"><small>Пассив / мес</small><b id="h-pass">—</b></div>
+      <div class="hstat" title="Факт: выплаты за последние 12 месяцев, делённые на 12"><small>Пассив / мес</small><b id="h-pass">—</b></div>
       <div class="hbtns">
         <button class="btn" id="btn-port" title="Загрузить CSV/Excel с бумагами — обновит позиции и создаст нужный брокерский счёт">Портфель из файла</button>
         <button class="btn" id="btn-pay" title="Загрузить CSV/Excel с дивидендами и купонами">Выплаты из файла</button>
@@ -333,7 +336,7 @@ function overview(){
   const avgSave=lastMonths.length?lastMonths.reduce((x,m)=>x+num(m.income)-num(m.expense),0)/lastMonths.length:null;
   const avgInc=lastMonths.length?lastMonths.reduce((x,m)=>x+num(m.income),0)/lastMonths.length:0;
   const sellCnt=state.positions.filter(p=>p.verdict==="sell"), sellSum=sellCnt.reduce((x,p)=>x+num(p.value),0);
-  const pl=state.positions.reduce((x,p)=>x+num(p.value)-num(p.cost),0);
+  const pl=state.positions.filter(p=>num(p.cost)>0&&num(p.value)>0).reduce((x,p)=>x+num(p.value)-num(p.nkd)-num(p.cost),0), R=tResult(), F=forecast();
   const byAcc=state.accounts.filter(a=>a.kind!=="debt").map(a=>({n:a.name,k:a.kind,v:num(a.value)+num(a.cash)})).sort((a,b)=>b.v-a.v);
   const maxA=Math.max(1,...byAcc.map(a=>a.v));
   const baseLabel=s.base==="all"?"весь капитал без машины":"ликвидный портфель";
@@ -341,7 +344,7 @@ function overview(){
   <section class="grid kpis">
     <div class="panel kpi"><small>Чистый капитал</small><div class="v">${mln(t.nw)}</div><div class="n">активы ${mln(t.assets)} · долги ${mln(t.debts)}</div></div>
     <div class="panel kpi"><small>Ликвидный портфель</small><div class="v">${mln(t.liquid)}</div><div class="n">брокеры, ИИС, деньги</div></div>
-    <div class="panel kpi"><small>Пассивный доход</small><div class="v">${rub(t.passive)}</div><div class="n">в среднем за 12 мес по выплатам</div></div>
+    <div class="panel kpi"><small>Пассивный доход</small><div class="v">${rub(t.passive)}</div><div class="n">в месяц, факт за 12 мес${F.sum>0?` · прогноз Т-Банка ≈ ${rub(F.sum/12)}`:""}</div></div>
     <div class="panel kpi"><small>Норма сбережений</small><div class="v">${avgSave==null?"—":Math.round(avgSave/Math.max(1,avgInc)*100)+"%"}</div><div class="n">${avgSave==null?"заполните «Бюджет»":"откладываю ~"+rub(avgSave)+" / мес"}</div></div>
   </section>
   <section class="grid two">
@@ -366,7 +369,8 @@ function overview(){
         <h2>Бумаги</h2>
         <div class="alloc">
           <div class="row"><span>Позиций в учёте</span><b>${state.positions.length}</b></div>
-          <div class="row"><span>Результат по открытым</span><b class="${pl>=0?"up":"down"}">${pl>=0?"+":""}${rub(pl)}</b></div>
+          ${R&&R.result!=null?`<div class="row"><span>Результат за всё время, Т-Банк</span><b class="${R.result>=0?"up":"down"}">${signed(R.result)}${R.xirr!=null?` · ${pctS(R.xirr*100)} в год`:""}</b></div>`:""}
+          <div class="row"><span>Переоценка открытых позиций</span><b class="${pl>=0?"up":"down"}">${signed(pl)}</b></div>
           <div class="row"><span>К продаже (налоговая чистка)</span><b class="down">${sellCnt.length} · ${rub(sellSum)}</b></div>
         </div>
       </div>
@@ -515,61 +519,103 @@ let pfClass="all";
 const clsOf=p=>p.kind==="bond"||p.kind==="share"||p.kind==="fund"?p.kind:"other";
 function pfData(){
   const accs=state.accounts.filter(a=>LIQUID.includes(a.kind)), ids=new Set(accs.map(a=>a.id));
-  const held=state.positions.filter(p=>num(p.value)>0&&(!p.account||ids.has(p.account)));
-  const sum={bond:0,share:0,fund:0,cash:0,other:0,none:0}, cnt={bond:0,share:0,fund:0,other:0};
-  for(const p of held){sum[clsOf(p)]+=num(p.value);cnt[clsOf(p)]++}
-  const rows=accs.map(a=>{const inPos=held.filter(p=>p.account===a.id).reduce((x,p)=>x+num(p.value),0);
-    return {a,inPos,un:Math.max(0,num(a.value)-inPos),cash:num(a.cash),total:num(a.value)+num(a.cash)}}).sort((x,y)=>y.total-x.total);
-  for(const r of rows){sum.cash+=r.cash;sum.none+=r.un}
-  const whole=Object.values(sum).reduce((x,v)=>x+v,0);
-  const wc=held.filter(p=>num(p.cost)>0), inv=wc.reduce((x,p)=>x+num(p.cost),0), pnl=wc.reduce((x,p)=>x+num(p.value)-num(p.cost),0);
-  const empty=state.positions.filter(p=>!num(p.value)&&!p.sold&&!(p.tuid&&!num(p.qty))).length;
-  return {accs,held,sum,cnt,rows,whole,inv,pnl,empty};
+  const sum={bond:0,share:0,fund:0,cash:0,other:0,none:0}, cnt={bond:0,share:0,fund:0,other:0}, held=[], capped=[];
+  const rows=accs.map(a=>{
+    const auto=isAuto(a), val=num(a.value), cash=num(a.cash);
+    // A T-Bank account holds exactly what the broker reports: hand-typed leftovers there are not counted again
+    const ps=state.positions.filter(p=>p.account===a.id&&num(p.value)>0&&(!auto||p.tuid));
+    const inPos=ps.reduce((x,p)=>x+num(p.value),0), f=inPos>val?Math.max(0,val)/inPos:1;
+    if(inPos-val>Math.max(1000,val*0.01)) capped.push({a,inPos,val});
+    for(const p of ps){const cv=num(p.value)*f;held.push({...p,cv});sum[clsOf(p)]+=cv;cnt[clsOf(p)]++}
+    sum.none+=val-inPos*f; sum.cash+=cash;
+    return {a,cash,total:val+cash};
+  }).sort((x,y)=>y.total-x.total);
+  const whole=rows.reduce((x,r)=>x+r.total,0); // = totals().liquid
+  const loose=state.positions.filter(p=>num(p.value)>0&&!ids.has(p.account));
+  const wc=held.filter(p=>num(p.cost)>0), inv=wc.reduce((x,p)=>x+num(p.cost),0), pnl=wc.reduce((x,p)=>x+num(p.value)-num(p.nkd)-num(p.cost),0);
+  const empty=state.positions.filter(p=>!num(p.value)&&!p.sold&&!p.tuid&&ids.has(p.account)&&!isAuto(state.accounts.find(a=>a.id===p.account))).length;
+  return {accs,held,sum,cnt,rows,whole,inv,pnl,empty,capped,loose};
 }
 function srcCell(a){
   if(isAuto(a)) return `<span class="pill buy">авто</span> <span class="src">Т-Банк · ${a.synced?agoShort(Date.parse(a.synced)):"ещё не обновлялся"}</span>`;
   return `<span class="pill hold">вручную</span> <span class="src">${a.updated?"обновлено "+new Date(a.updated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"}):a.note?esc(a.note):"дата не указана"}</span>`;
 }
+const nPapers=n=>n%10===1&&n%100!==11?"бумага":[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?"бумаги":"бумаг";
+function resultPanel(R){
+  if(!tinv.token) return "";
+  const head=`<h2>Результат за всё время <span class="sub">счета Т-Банка — считается так же, как в renta.life</span></h2>`;
+  if(!R) return `<div class="panel">${head}<div class="empty">Появится после первой синхронизации с Т-Банком.</div></div>`;
+  if(R.pending) return `<div class="panel">${head}<div class="empty">Загружаю историю пополнений и выводов за всё время — обычно это минута после открытия сайта.</div></div>`;
+  if(R.noflows) return `<div class="panel">${head}<div class="empty">В истории Т-Банка нет ни одного пополнения — результат за всё время посчитать не из чего.</div></div>`;
+  const cls=v=>v>=0?"up":"down", since=new Date(R.since).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}).replace(/ г\.$/,"");
+  return `<div class="panel">${head}
+  <div class="grid two" style="gap:22px">
+    <div class="alloc">
+      <div class="row"><span>Счета Т-Банка стоят сейчас</span><b>${rub(R.value)}</b></div>
+      <div class="row"><span>Внесли за всё время<span class="sm">пополнения ${rub(R.dep)}${R.wd?` минус выводы ${rub(R.wd)}`:""} · с ${since}</span></span><b>${rub(R.net)}</b></div>
+      <div class="row tot"><span>Результат = стоят сейчас − внесли</span><b class="big2 ${cls(R.result)}">${signed(R.result)}</b></div>
+      <div class="row"><span>XIRR — доходность ваших денег<span class="sm">${R.xirr==null?"не посчитать: история короче двух месяцев или деньги только выводились":"в год, с учётом того, когда вносили и выводили деньги"}</span></span><b class="big2 ${R.xirr==null?"":cls(R.xirr)}">${R.xirr==null?"—":pctS(R.xirr*100)}</b></div>
+    </div>
+    <div class="alloc" style="align-content:start">
+      <span class="cap">Из чего сложился результат</span>
+      <div class="row"><span>Переоценка текущих бумаг<span class="sm">цена сейчас минус средняя цена покупки, без НКД</span></span><b class="${cls(R.reval)}">${signed(R.reval)}</b></div>
+      <div class="row"><span>Купоны и дивиденды<span class="sm">всё, что пришло за всё время, до налога</span></span><b class="${cls(R.income)}">${signed(R.income)}</b></div>
+      <div class="row"><span>Проданные бумаги, НКД, комиссии, налоги<span class="sm">всё остальное: прибыль и убыток прошлых сделок минус расходы</span></span><b class="${cls(R.other)}">${signed(R.other)}</b></div>
+    </div>
+  </div>
+  <p class="note">Результат — сколько счета стоят сейчас минус сколько вы на них внесли (пополнения минус выводы), поэтому сюда входят и полученные выплаты, и закрытые сделки. «Результат по бумагам» раньше показывал только переоценку текущих бумаг — отсюда была разница с renta.life. Дивиденды, выплаченные сразу на карту, считаются выведенными деньгами. «С начала года» и «за 12 месяцев» renta.life считает по своей истории стоимости портфеля; у сайта такой истории нет, поэтому здесь — за всё время. ВТБ и Инвестпалата сюда не входят: их операции сайт не видит.${R.missing.length?` Без ${R.missing.map(n=>"«"+esc(n)+"»").join(", ")}: история операций этого счёта не загрузилась.`:""}${R.unpriced?` ${R.unpriced} ${R.unpriced===1?"перевод":"переводов"} бумаг от другого брокера пришли без цены — их стоимость не попала во «внесли», поэтому результат может быть завышен.`:""}</p></div>`;
+}
 function portfolio(){
-  const t=totals(), d=pfData(), W=Math.max(1,d.whole);
+  const t=totals(), d=pfData(), W=Math.max(1,d.whole), R=tResult(), F=forecast();
   const pct=v=>{const x=v/W*100;return (x>0&&x<0.1?"<0,1":x.toLocaleString("ru-RU",{maximumFractionDigits:x<10?1:0}))+"%"};
-  const cash=d.sum.cash, inPapers=t.liquid-cash, auto=state.accounts.filter(isAuto).length;
-  const parts=CLASSES.filter(c=>d.sum[c.k]>0);
-  const top=[...d.held].sort((a,b)=>num(b.value)-num(a.value)), top5=top.slice(0,5).reduce((x,p)=>x+num(p.value),0);
+  const cash=d.sum.cash, inPapers=d.whole-cash, auto=state.accounts.filter(isAuto).length;
+  const parts=CLASSES.filter(c=>c.k==="none"?d.sum.none>=Math.max(1000,W*5e-4):d.sum[c.k]>=0.5);
+  const top=[...d.held].sort((a,b)=>b.cv-a.cv), top5=top.slice(0,5).reduce((x,p)=>x+p.cv,0), maxV=Math.max(1,top.length?top[0].cv:1);
   let list=top; if(pfClass!=="all") list=list.filter(p=>clsOf(p)===pfClass);
   const accName=id=>(state.accounts.find(a=>a.id===id)||{}).name||"без счёта";
   const swatch=k=>{const c=CLASSES.find(x=>x.k===k);return `<i class="sw" style="background:${c.c}"></i>`};
   const filters=[["all","Все"],...CLASSES.filter(c=>d.cnt[c.k]).map(c=>[c.k,c.n])];
+  const rv=p=>num(p.value)-num(p.nkd)-num(p.cost);
+  const fcCell=p=>{const it=F.items[p.id]; if(!it) return `<span class="muted">—</span>`;
+    if(!it.v) return `<span class="muted">${it.u?"сумма не известна":it.k==="share"?"не объявлены":"—"}</span>`;
+    return `${rub(it.v)}<br><small class="muted">${it.how}${it.u?", не все известны":""}</small>`};
+  const hasR=R&&R.result!=null, fcN=F.live&&F.sum>0?`прогноз Т-Банка ≈ ${rub(F.sum/12)}`:"";
+  const notes=[];
+  if(d.capped.length) notes.push(`В ${d.capped.map(c=>`«${esc(c.a.name)}»`).join(", ")} бумаги стоят больше суммы счёта (${d.capped.map(c=>mln(c.inPos)+" против "+mln(c.val)).join("; ")}) — здесь они уменьшены до суммы счёта. Обновите сумму во вкладке «Счета».`);
+  if(d.loose.length) notes.push(`${d.loose.length} ${nPapers(d.loose.length)} на ${rub(d.loose.reduce((x,p)=>x+num(p.value),0))} без счёта не учтены — укажите счёт во вкладке «Бумаги».`);
   return `<section class="grid kpis">
     <div class="panel kpi"><small>Всего на счетах</small><div class="v">${mln(t.liquid)}</div><div class="n">${d.accs.length} ${d.accs.length===1?"счёт":d.accs.length<5?"счёта":"счетов"}${auto?` · Т-Банк обновляется сам`:""}</div></div>
-    <div class="panel kpi"><small>В бумагах</small><div class="v">${mln(inPapers)}</div><div class="n">${d.held.length} ${d.held.length%10===1&&d.held.length%100!==11?"бумага":[2,3,4].includes(d.held.length%10)&&![12,13,14].includes(d.held.length%100)?"бумаги":"бумаг"} · ${pct(inPapers)} портфеля</div></div>
+    <div class="panel kpi"><small>В бумагах</small><div class="v">${mln(inPapers)}</div><div class="n">${d.held.length} ${nPapers(d.held.length)} · ${pct(inPapers)} портфеля</div></div>
     <div class="panel kpi"><small>Свободные деньги</small><div class="v">${mln(cash)}</div><div class="n">${pct(cash)} портфеля, можно вложить</div></div>
-    <div class="panel kpi"><small>Результат по бумагам</small><div class="v ${d.pnl>=0?"up":"down"}">${d.inv?signed(d.pnl):"—"}</div><div class="n">${d.inv?`${d.pnl>=0?"+":"−"}${Math.abs(d.pnl/d.inv*100).toLocaleString("ru-RU",{maximumFractionDigits:1})}% к вложенным ${mln(d.inv)}`:"нет цены покупки"}</div></div>
-    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub(t.passive)}</div><div class="n">в месяц, по выплатам за 12 мес · <a href="#" data-goto="income">подробнее</a></div></div>
+    ${hasR?`<div class="panel kpi"><small>Результат за всё время</small><div class="v ${R.result>=0?"up":"down"}">${signed(R.result)}</div><div class="n">${R.xirr!=null?`XIRR ${pctS(R.xirr*100)} в год · `:""}переоценка текущих бумаг ${signed(R.reval)}</div></div>`
+      :`<div class="panel kpi"><small>Переоценка бумаг</small><div class="v ${d.pnl>=0?"up":"down"}">${d.inv?signed(d.pnl):"—"}</div><div class="n">${d.inv?`${pctS(d.pnl/d.inv*100)} к цене покупки ${mln(d.inv)}`:"нет цены покупки"}${R&&R.pending?" · результат за всё время — после загрузки истории Т-Банка":""}</div></div>`}
+    <div class="panel kpi"><small>Пассив в месяц</small><div class="v">${rub(t.passive)}</div><div class="n">факт: выплаты за 12 мес ÷ 12${fcN?` · ${fcN}`:""} · <a href="#" data-goto="income">подробнее</a></div></div>
   </section>
-  <div class="panel"><h2>Из чего состоит портфель <span class="sub">${mln(d.whole)} — бумаги по видам, свободные деньги и суммы счетов без разбивки</span></h2>
-    ${parts.length?`<div class="segbar" role="img" aria-label="${parts.map(c=>c.n+" "+pct(d.sum[c.k])).join(", ")}">${parts.map(c=>`<span style="flex:${d.sum[c.k]} 1 0;background:${c.c};color:${c.ink}" title="${c.n}: ${rub(d.sum[c.k])} · ${pct(d.sum[c.k])}">${pct(d.sum[c.k])}</span>`).join("")}</div>
+  ${resultPanel(R)}
+  <div class="panel"><h2>Из чего состоит портфель <span class="sub">${mln(d.whole)} — столько же, сколько «Всего на счетах»: бумаги по видам, свободные деньги и суммы счетов без разбивки</span></h2>
+    ${parts.length?`<div class="segbar" role="img" aria-label="${parts.map(c=>c.n+" "+pct(d.sum[c.k])).join(", ")}">${parts.filter(c=>d.sum[c.k]>0).map(c=>`<span style="flex:${d.sum[c.k]} 1 0;background:${c.c};color:${c.ink}" title="${c.n}: ${rub(d.sum[c.k])} · ${pct(d.sum[c.k])}">${pct(d.sum[c.k])}</span>`).join("")}</div>
     <div class="tablewrap"><table><thead><tr><th>Вид</th><th class="num">Бумаг</th><th class="num">Сумма</th><th class="num">Доля</th></tr></thead><tbody>
     ${parts.map(c=>`<tr><td>${swatch(c.k)}${c.n}${c.k==="none"?` <span class="muted" style="font-size:12px">— у счёта есть сумма, но бумаги в нём не внесены</span>`:""}</td><td class="num">${c.k in d.cnt?d.cnt[c.k]:"—"}</td><td class="num">${rub(d.sum[c.k])}</td><td class="num">${pct(d.sum[c.k])}</td></tr>`).join("")}
-    </tbody></table></div>`:`<div class="empty">Добавьте счета и бумаги — здесь появится разбивка портфеля.</div>`}
-    ${Math.abs(d.whole-t.liquid)>Math.max(1000,t.liquid*0.01)?`<p class="note">Сумма бумаг больше суммы некоторых счетов на ${rub(Math.abs(d.whole-t.liquid))} — обновите суммы во вкладке «Счета» или укажите счёт у бумаг во вкладке «Бумаги».</p>`:""}
+    </tbody><tfoot><tr><td>Итого = «Ликвидно» в шапке</td><td class="num">${d.held.length}</td><td class="num">${rub(d.whole)}</td><td class="num">100%</td></tr></tfoot></table></div>`:`<div class="empty">Добавьте счета и бумаги — здесь появится разбивка портфеля.</div>`}
+    <p class="note">${auto?"В счетах Т-Банка считаются только бумаги, которые показывает брокер: записи, внесённые туда вручную раньше, второй раз не учитываются. ":""}${notes.join(" ")}</p>
   </div>
   <div class="panel"><h2>Где лежат деньги <span class="sub">по счетам и откуда цифры</span></h2>
     <div class="tablewrap"><table><thead><tr><th>Счёт</th><th>Откуда цифры</th><th class="num">В бумагах</th><th class="num">Деньги</th><th class="num">Итого</th><th class="num">Доля</th></tr></thead><tbody>
     ${d.rows.map(r=>`<tr><td><b>${esc(r.a.name)}</b> <span class="muted">· ${KIND_LABEL[r.a.kind]||""}</span></td><td>${srcCell(r.a)}</td>
-      <td class="num">${rub(num(r.a.value))}</td><td class="num">${rub(r.cash)}</td><td class="num"><b>${rub(r.total)}</b></td><td class="num"><div class="share"><div class="meter"><i style="width:${Math.min(100,r.total/W*100).toFixed(1)}%"></i></div><span>${pct(r.total)}</span></div></td></tr>`).join("")}
+      <td class="num">${rub(num(r.a.value))}</td><td class="num">${rub(r.cash)}</td><td class="num"><b>${rub(r.total)}</b></td><td class="num"><div class="share"><div class="meter"><i style="width:${Math.max(0,Math.min(100,r.total/W*100)).toFixed(1)}%"></i></div><span>${pct(r.total)}</span></div></td></tr>`).join("")}
     </tbody><tfoot><tr><td colspan="2">Итого</td><td class="num">${rub(inPapers)}</td><td class="num">${rub(cash)}</td><td class="num">${rub(t.liquid)}</td><td></td></tr></tfoot></table></div>
   </div>
-  <div class="panel"><h2>Чем владею <span class="sub">${d.held.length?`крупнейшая бумага — ${esc(top[0].name)}: ${pct(num(top[0].value))} портфеля${top.length>5?` · 5 крупнейших — ${pct(top5)}`:""}`:"бумаг с текущей стоимостью пока нет"}</span></h2>
+  <div class="panel"><h2>Чем владею <span class="sub">${d.held.length?`крупнейшая бумага — ${esc(top[0].name)}: ${pct(top[0].cv)} портфеля${top.length>5?` · 5 крупнейших — ${pct(top5)}`:""}`:"бумаг с текущей стоимостью пока нет"}</span></h2>
     ${d.held.length?`<div class="seg" role="group" aria-label="Вид бумаг">${filters.map(([v,l])=>`<button data-pc="${v}" aria-pressed="${pfClass===v}">${l}</button>`).join("")}</div>
-    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Счёт</th><th class="num">Кол-во</th><th class="num">Стоит</th><th class="num">Доля</th><th class="num">Результат</th><th>Решение</th></tr></thead><tbody>
-    ${list.map(p=>{const c=num(p.cost),v=num(p.value),r=v-c;return `<tr><td style="min-width:180px">${swatch(clsOf(p))}${esc(p.name)} <span class="muted">${esc(p.ticker)}</span></td>
-      <td class="muted">${esc(accName(p.account))}</td><td class="num">${num(p.qty)?nf.format(num(p.qty)):"—"}</td><td class="num">${rub(v)}</td>
-      <td class="num"><div class="share"><div class="meter"><i style="width:${(v/Math.max(1,num(top[0].value))*100).toFixed(1)}%"></i></div><span>${pct(v)}</span></div></td>
-      <td class="num ${c?r>=0?"up":"down":"muted"}">${c?`${signed(r)}<br><small>${r>=0?"+":"−"}${Math.abs(r/c*100).toLocaleString("ru-RU",{maximumFractionDigits:1})}%</small>`:"—"}</td>
+    <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Счёт</th><th class="num">Кол-во</th><th class="num">Стоит</th><th class="num">Доля</th><th class="num">Переоценка</th><th class="num">Выплаты за 12 мес<br>прогноз</th><th>Решение</th></tr></thead><tbody>
+    ${list.map(p=>{const c=num(p.cost),r=rv(p);return `<tr><td style="min-width:180px">${swatch(clsOf(p))}${esc(p.name)} <span class="muted">${esc(p.ticker)}</span></td>
+      <td class="muted">${esc(accName(p.account))}</td><td class="num">${num(p.qty)?nf.format(num(p.qty)):"—"}</td><td class="num">${rub(p.cv)}</td>
+      <td class="num"><div class="share"><div class="meter"><i style="width:${(p.cv/maxV*100).toFixed(1)}%"></i></div><span>${pct(p.cv)}</span></div></td>
+      <td class="num ${c?r>=0?"up":"down":"muted"}">${c?`${signed(r)}<br><small>${pctS(r/c*100)}</small>`:"—"}</td>
+      <td class="num">${fcCell(p)}</td>
       <td><span class="pill ${p.verdict in VERDICT?p.verdict:"hold"}">${VERDICT[p.verdict]||"Держать"}</span></td></tr>`}).join("")}
-    </tbody><tfoot><tr><td colspan="3">${pfClass==="all"?"Все бумаги":esc((CLASSES.find(c=>c.k===pfClass)||{}).n||"")}</td><td class="num">${rub(list.reduce((x,p)=>x+num(p.value),0))}</td><td class="num">${pct(list.reduce((x,p)=>x+num(p.value),0))}</td><td colspan="2"></td></tr></tfoot></table></div>`:""}
-    <p class="note">Доля — от всего портфеля (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Результат — разница между текущей стоимостью и ценой покупки${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}.${d.empty?` Ещё ${d.empty} ${d.empty===1?"бумага":"бумаг"} без текущей стоимости не показаны — заполните «Стоит сейчас» во вкладке «Бумаги».`:""} Решения меняются во вкладке «Бумаги».</p>
+    </tbody><tfoot><tr><td colspan="3">${pfClass==="all"?"Все бумаги":esc((CLASSES.find(c=>c.k===pfClass)||{}).n||"")}</td><td class="num">${rub(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${pct(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${signed(list.filter(p=>num(p.cost)>0).reduce((x,p)=>x+rv(p),0))}</td><td class="num">${rub(list.reduce((x,p)=>x+((F.items[p.id]||{}).v||0),0))}</td><td></td></tr></tfoot></table></div>`:""}
+    <p class="note">Доля — от всего портфеля (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Переоценка — текущая цена минус цена покупки, без накопленного купонного дохода${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}. Выплаты за 12 мес — прогноз по известным суммам, до налога: купоны по графику, объявленные дивиденды, у фондов — как за прошлый год.${d.empty?` Ещё ${d.empty} ${nPapers(d.empty)} без текущей стоимости ${d.empty%10===1&&d.empty%100!==11?"не показана":"не показаны"} — заполните «Стоит сейчас» во вкладке «Бумаги».`:""} Решения меняются во вкладке «Бумаги».</p>
   </div>`;
 }
 
@@ -604,19 +650,20 @@ function positions(){
   return `<div class="panel"><h2>Бумаги во всех счетах <span class="sub">текущая стоимость и сколько вложено берите из приложения брокера</span></h2>
   <div class="seg" role="group" aria-label="Фильтр">${[["all","Все"],["hold","Держать"],["buy","Докупать"],["sell","Продать"],["watch","Решить"]].map(([v,l])=>`<button data-pf="${v}" aria-pressed="${posFilter===v}">${l}</button>`).join("")}</div>
   ${rows.length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Тикер</th><th>Вид</th><th>Счёт</th><th class="num">Вложено, ₽</th><th class="num">Стоит сейчас, ₽</th><th class="num">Результат</th><th>Решение</th><th></th></tr></thead><tbody>
-  ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;const au=!!(p.tuid&&tinv.token);return `<tr data-coll="positions" data-id="${p.id}">
+  ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;const au=!!(p.tuid&&tinv.token);
+    const inAuto=isAuto(state.accounts.find(a=>a.id===p.account)), ro=au||inAuto, gone=inAuto&&(!p.tuid||!num(p.qty));return `<tr data-coll="positions" data-id="${p.id}">
     <td style="min-width:170px"><input data-f="name" value="${esc(p.name)}" aria-label="Бумага"></td>
-    <td style="min-width:90px">${au?`<span class="muted">${esc(p.ticker)}</span>`:`<input data-f="ticker" value="${esc(p.ticker)}" aria-label="Тикер">`}</td>
+    <td style="min-width:90px">${ro?`<span class="muted">${esc(p.ticker)}</span>`:`<input data-f="ticker" value="${esc(p.ticker)}" aria-label="Тикер">`}</td>
     <td><select data-f="kind" aria-label="Вид">${Object.entries(PKIND).map(([v,l])=>`<option value="${v}" ${p.kind===v?"selected":""}>${l}</option>`).join("")}</select></td>
     <td>${au?`<span class="muted">${esc(accName(p.account))}</span>`:`<select data-f="account" aria-label="Счёт"><option value="">—</option>${accs.map(a=>`<option value="${a.id}" ${p.account===a.id?"selected":""}>${esc(a.name)}</option>`).join("")}</select>`}</td>
-    <td class="num" style="min-width:110px">${au?rub(num(p.cost)):`<input data-f="cost" type="number" step="100" value="${num(p.cost)}" aria-label="Вложено">`}</td>
-    <td class="num" style="min-width:110px">${au?`<span title="Обновляется из Т-Банка каждую минуту">${rub(num(p.value))}</span>`:`<input data-f="value" type="number" step="100" value="${num(p.value)}" aria-label="Стоимость">`}</td>
+    <td class="num" style="min-width:110px">${ro?rub(num(p.cost)):`<input data-f="cost" type="number" step="100" value="${num(p.cost)}" aria-label="Вложено">`}</td>
+    <td class="num" style="min-width:110px">${gone?`<span class="pill hold" title="Т-Банк не показывает эту бумагу в этом счёте: она продана или запись внесена вручную. В суммы не входит — запись можно удалить или перенести в другой счёт">нет в счёте</span>`:ro?`<span title="Обновляется из Т-Банка каждую минуту">${rub(num(p.value))}</span>`:`<input data-f="value" type="number" step="100" value="${num(p.value)}" aria-label="Стоимость">`}</td>
     <td class="num ${r>=0?"up":"down"}">${num(p.cost)||num(p.value)?`${r>=0?"+":""}${rub(r)}<br><small>${pc>=0?"+":""}${pc.toFixed(1)}%</small>`:"—"}</td>
     <td class="v-cell"><select data-f="verdict" aria-label="Решение">${Object.entries(VERDICT).map(([v,l])=>`<option value="${v}" ${p.verdict===v?"selected":""}>${l}</option>`).join("")}</select></td>
     <td><button class="btn ghost" data-del="positions" data-id="${p.id}" title="Удалить">✕</button></td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="4">Итого ${posFilter==="all"?"":"("+VERDICT[posFilter]+")"}</td><td class="num">${rub(tc)}</td><td class="num">${rub(tv)}</td><td class="num ${tv-tc>=0?"up":"down"}">${tv-tc>=0?"+":""}${rub(tv-tc)}</td><td colspan="2"></td></tr></tfoot></table></div>`:`<div class="empty">Здесь появятся ваши бумаги. Добавьте первую кнопкой ниже.</div>`}
   <div class="toolbar"><button class="btn primary" id="addpos">+ Добавить бумагу</button>
-  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки во вкладке «Налоги и задачи».${state.positions.some(p=>p.tuid&&tinv.token)?" У бумаг Т-Банка цена, вложено, тикер и счёт обновляются сами; название, вид и решение можно менять.":""}</span></div></div>`;
+  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки во вкладке «Налоги и задачи».${state.positions.some(p=>p.tuid&&tinv.token)?" У бумаг Т-Банка цена, вложено, тикер и счёт обновляются сами; название, вид и решение можно менять.":""}${state.positions.some(p=>isAuto(state.accounts.find(a=>a.id===p.account))&&(!p.tuid||!num(p.qty)))?" «Нет в счёте» — Т-Банк не показывает эту бумагу в этом счёте: она продана или была внесена вручную. Такие записи не входят в суммы; их можно удалить или перенести в другой счёт.":""}</span></div></div>`;
 }
 
 // ----- Payouts -----
@@ -736,6 +783,33 @@ function incomeSim(years,growthPct,contrib){
   return {avg:lastYear/12,total,hit,pts};
 }
 function hitIncome(growthPct,contrib){const r=incomeSim(30,growthPct,contrib);return r.hit}
+// Fact (paid in the last 12 months) next to the forecast (known amounts of the next 12 months) — the two numbers people compare with renta.life
+function fcPanel(F,b,now){
+  if(!F.live) return "";
+  const tb12=state.payouts.filter(p=>p.src==="tinvest"&&inLast12(p.month)).reduce((x,p)=>x+num(p.amount),0);
+  const rows=state.positions.filter(p=>F.items[p.id]).map(p=>({p,...F.items[p.id]})).sort((x,y)=>y.v-x.v);
+  const pos=rows.filter(r=>r.v>0), unk=rows.filter(r=>r.u);
+  return `<div class="panel"><h2>Факт и прогноз <span class="sub">почему на сайте одна цифра пассива, а в renta.life другая</span></h2>
+  <div class="grid two" style="gap:22px">
+    <div class="alloc">
+      <span class="cap">Факт — что уже пришло</span>
+      <div class="row"><span>За последние 12 месяцев<span class="sm">все счета; в том числе Т-Банк — ${rub(tb12)}</span></span><b>${rub(b.D+b.O)}</b></div>
+      <div class="row tot"><span>В месяц — это «Пассив» в шапке сайта</span><b class="big2">${rub(now)}</b></div>
+    </div>
+    <div class="alloc" style="align-content:start">
+      <span class="cap">Прогноз — что придёт, как в renta.life</span>
+      <div class="row"><span>За следующие 12 месяцев<span class="sm">только Т-Банк и только уже известные суммы · ${F.pct.toLocaleString("ru-RU",{maximumFractionDigits:1})}% к его стоимости</span></span><b>${F.sum>0?"≈ "+rub(F.sum):"—"}</b></div>
+      <div class="row tot"><span>В месяц</span><b class="big2">${F.sum>0?"≈ "+rub(F.sum/12):"—"}</b></div>
+    </div>
+  </div>
+  <p class="note">Прогноз обычно ниже факта: в него входят только купоны по графику, уже объявленные дивиденды и выплаты фондов как за прошлый год. Дивиденды, которые компании ещё не объявили, плавающие купоны без известной суммы и выплаты от уже проданных бумаг туда не попадают. Обе цифры — до налога.${F.pending?` Ещё считаю ${F.pending} ${nPapers(F.pending)} — прогноз уточнится в течение 10–20 минут.`:""}${F.unknown?` Сумма известна не для всех: ${F.unknown} ${nPapers(F.unknown)}.`:""}</p>
+  ${pos.length||unk.length?`<details id="fc-list" style="margin-top:10px"><summary style="font-weight:500">Прогноз по бумагам — из чего складываются ${F.sum>0?"≈ "+rub(F.sum):"выплаты"}</summary>
+    <div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Бумага</th><th>Откуда сумма</th><th class="num">За 12 мес</th><th class="num">В месяц</th></tr></thead><tbody>
+    ${pos.map(r=>`<tr><td>${esc(r.p.name)} <span class="muted">${esc(r.p.ticker)}</span></td><td class="muted">${r.how}${r.u?", часть сумм не известна":""}</td><td class="num">${rub(r.v)}</td><td class="num">${rub(r.v/12)}</td></tr>`).join("")}
+    ${unk.filter(r=>!r.v).map(r=>`<tr><td>${esc(r.p.name)} <span class="muted">${esc(r.p.ticker)}</span></td><td class="muted">сумма будущих выплат ещё не известна</td><td class="num muted">—</td><td class="num muted">—</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="2">Итого</td><td class="num">${rub(F.sum)}</td><td class="num">${rub(F.sum/12)}</td></tr></tfoot></table></div></details>`:""}
+  </div>`;
+}
 // Manual payout records next to the broker's own ones = the same money counted twice
 const manualPayouts=()=>state.payouts.filter(p=>!p.src);
 function payoutDupes(){
@@ -764,20 +838,22 @@ function dupBanner(){
 function income(){
   const s=state.settings,b=incomeBase(),H=num(s.horizon)||5,g=num(s.divGrowth),goal=num(s.goalIncome);
   const base=incomeSim(H,0), grow=incomeSim(H,g);
-  const hb=hitIncome(0), hg=hitIncome(g), now=(b.D+b.O)/12, re=s.reinvest!=="none";
+  const hb=hitIncome(0), hg=hitIncome(g), now=(b.D+b.O)/12, re=s.reinvest!=="none", F=forecast();
   const fld=(label,input,hint)=>`<label class="f fh">${label}${input}<span class="hint">${hint}</span></label>`;
   return `${dupBanner()}
   <div class="panel"><h2>Коротко</h2>
     <p class="lead">Сейчас выплаты приносят <b>${rub(now)} в месяц</b> — это ${rub(b.D+b.O)} за последние 12 месяцев: дивиденды ${rub(b.D)}, купоны и фонды ${rub(b.O)}.
+    ${F.sum>0?`По уже известным будущим выплатам Т-Банка за следующие 12 месяцев придёт около <b>${rub(F.sum)}</b>, примерно ${rub(F.sum/12)} в месяц — такой прогноз показывает renta.life.`:""}
     ${hg?`Если докладывать ${rub(num(s.contribution))} в месяц${re?" и реинвестировать выплаты":""}, пассив ${rub(goal)} в месяц — <b>${dateLabel(hg)}</b>, через ${durLabel(hg)}.`:`С такими настройками пассив ${rub(goal)} в месяц — дальше 30 лет: увеличьте пополнение.`}</p>
     ${!b.D&&state.accounts.some(isAuto)?`<p class="note">Дивидендов за 12 месяцев нет. Раньше сайт не забирал из Т-Банка дивиденды, выплаченные на карту, — теперь забирает: дождитесь обновления или нажмите «Синхронизировать сейчас» во вкладке «Подключения». Там же есть сводка всех операций за год.</p>`:!b.D?`<p class="note">Дивидендов за 12 месяцев нет — внесите их во вкладке «Выплаты» или подключите Т-Банк.</p>`:""}
   </div>
   <section class="grid kpis">
-    <div class="panel kpi"><small>Пассив сейчас</small><div class="v">${rub(now)}</div><div class="n">в месяц — выплаты за 12 мес, делённые на 12</div></div>
-    <div class="panel kpi"><small>Дивиденды за 12 мес</small><div class="v">${rub(b.D)}</div><div class="n">по акциям</div></div>
-    <div class="panel kpi"><small>Купоны и фонды за 12 мес</small><div class="v">${rub(b.O)}</div><div class="n">облигации, ЗПИФ, БПИФ</div></div>
-    <div class="panel kpi"><small>Доходность выплат</small><div class="v">${b.curYield==null?"—":b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})+"%"}</div><div class="n">выплаты за год ÷ ликвидный портфель${b.curYield!=null&&b.curYield<8?". Низкая, если бумаги куплены недавно или часть выплат не внесена":""}</div></div>
+    <div class="panel kpi"><small>Пассив сейчас · факт</small><div class="v">${rub(now)}</div><div class="n">в месяц: пришло ${rub(b.D+b.O)} за последние 12 месяцев${b.curYield!=null?`, ${b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})}% к портфелю`:""}</div></div>
+    <div class="panel kpi"><small>Прогноз на 12 месяцев</small><div class="v">${F.sum>0?"≈ "+rub(F.sum):F.live&&F.pending?"считаю…":"—"}</div><div class="n">${F.sum>0?`≈ ${rub(F.sum/12)} в месяц · ${F.pct.toLocaleString("ru-RU",{maximumFractionDigits:1})}% к стоимости Т-Банка · по известным суммам${F.unknown?`, не все известны`:""}`:tinv.token?"появится после синхронизации: график купонов и объявленные дивиденды":"подключите Т-Банк — прогноз строится по графику купонов и объявленным дивидендам"}</div></div>
+    <div class="panel kpi"><small>Дивиденды за 12 мес</small><div class="v">${rub(b.D)}</div><div class="n">по акциям, факт</div></div>
+    <div class="panel kpi"><small>Купоны и фонды за 12 мес</small><div class="v">${rub(b.O)}</div><div class="n">облигации, ЗПИФ, БПИФ, факт</div></div>
   </section>
+  ${fcPanel(F,b,now)}
   <div class="panel">
     <h2>Когда пассив дойдёт до цели <span class="sub">сценарий, а не обещание выплат</span></h2>
     <div class="scen">
@@ -973,7 +1049,11 @@ const TINV_KEY="kapital-tinvest", TINV_INST_KEY="kapital-tinvest-inst";
 const TINV_BASES=["https://invest-public-api.tbank.ru/rest","https://invest-public-api.tinkoff.ru/rest"];
 const TINV_SVC="tinkoff.public.invest.api.contract.v1.";
 const TINV_EVERY=60*1000, TINV_OPS_EVERY=10*60*1000, TINV_RETRY=5*60*1000;
-const TINV_OPS_VER=2; // bump to re-read the whole payout history after a change in what is fetched
+const TINV_OPS_VER=3; // bump to re-read the whole operation history after a change in what is kept from it
+const TINV_FC_KEY="kapital-tinvest-fc", TINV_FC_TTL=12*3600*1000;
+// Money that crossed the account border: deposits add to "invested", withdrawals (and dividends paid to a card) subtract
+const FLOW_IN=["OPERATION_TYPE_INPUT","OPERATION_TYPE_INP_MULTI","OPERATION_TYPE_INPUT_ACQUIRING","OPERATION_TYPE_INPUT_SWIFT"];
+const FLOW_OUT=["OPERATION_TYPE_OUTPUT","OPERATION_TYPE_OUT_MULTI","OPERATION_TYPE_OUTPUT_ACQUIRING","OPERATION_TYPE_OUTPUT_SWIFT"];
 const TINV_INCOME={OPERATION_TYPE_COUPON:"coupon",OPERATION_TYPE_DIVIDEND:"dividend",OPERATION_TYPE_DIV_EXT:"dividend"};
 const OPLABEL={OPERATION_TYPE_COUPON:"Купоны",OPERATION_TYPE_DIVIDEND:"Дивиденды",OPERATION_TYPE_DIV_EXT:"Дивиденды на карту",OPERATION_TYPE_DIVIDEND_TRANSFER:"Передача дивидендного дохода",
   OPERATION_TYPE_BOND_REPAYMENT:"Частичное погашение облигаций",OPERATION_TYPE_BOND_REPAYMENT_FULL:"Погашение облигаций",OPERATION_TYPE_INPUT:"Пополнения",OPERATION_TYPE_OUTPUT:"Выводы",
@@ -1012,6 +1092,8 @@ function putDoc(coll,id,body){
   return true;
 }
 const TKIND={share:"share",bond:"bond",etf:"fund",currency:"other",futures:"other",option:"other",sp:"other"};
+const nmz=x=>String(x||"").toLowerCase().replace(/ё/g,"е").replace(/\([^)]*\)/g,"").replace(/[^a-zа-я0-9]/g,"");
+const nameLike=(a,b)=>{const x=nmz(a),y=nmz(b);return x.length>3&&y.length>3&&(x===y||x.includes(y)||y.includes(x))};
 const normT=t=>String(t||"").toUpperCase().replace(/@$/,"").trim();
 function linkAccount(a){
   let acc=state.accounts.find(x=>x.tid===a.id);
@@ -1042,28 +1124,35 @@ async function tinvAccount(a,inst){
   // Prices of foreign papers come in their own currency: scale them so each type adds up to the broker's RUB total.
   const TT={share:p.totalAmountShares,bond:p.totalAmountBonds,etf:p.totalAmountEtf,futures:p.totalAmountFutures,option:p.totalAmountOptions,sp:p.totalAmountSp};
   const rows=ps.map(x=>{const q=mv(x.quantity),cur=String((x.currentPrice&&x.currentPrice.currency)||"rub").toLowerCase();
-    return {x,q,cur,native:q*(mv(x.currentPrice)+mv(x.currentNkd)),cost:q*mv(x.averagePositionPrice)}});
+    return {x,q,cur,native:q*(mv(x.currentPrice)+mv(x.currentNkd)),nkd:q*mv(x.currentNkd),cost:q*mv(x.averagePositionPrice)}});
   const factor={};
   for(const t in TT){const rs=rows.filter(r=>r.x.instrumentType===t);const fr=rs.filter(r=>r.cur!=="rub"),fn=fr.reduce((s,r)=>s+r.native,0);
     if(fr.length&&fn>0){const rub=rs.filter(r=>r.cur==="rub").reduce((s,r)=>s+r.native,0);factor[t]=Math.max(0,(mv(TT[t])-rub)/fn)}}
-  const seen=new Set();
+  const used=new Set();
+  const brokerT=new Set(rows.map(r=>normT((inst[r.x.instrumentUid]||{}).ticker||r.x.ticker)).filter(Boolean));
   for(const r of rows){
     const uid=r.x.instrumentUid||r.x.figi, info=inst[r.x.instrumentUid]||{}, f=r.cur==="rub"?1:(factor[r.x.instrumentType]||1);
-    const tk=info.ticker||r.x.ticker||"";
-    let pos=state.positions.find(q=>q.tuid===uid&&q.account===accId)
-      ||state.positions.find(q=>!q.tuid&&q.account===accId&&tk&&normT(q.ticker)===normT(tk))
-      ||state.positions.find(q=>!q.tuid&&!q.account&&tk&&normT(q.ticker)===normT(tk));
-    const body={account:accId,tuid:uid,ticker:tk||(pos&&pos.ticker)||"",qty:r.q,value:Math.round(r.native*f),cost:Math.round(r.cost*f)};
-    if(pos) putDoc("positions",pos.id,body);
-    else putDoc("positions","tinv-"+accId+"-"+uid,{name:info.name||tk||uid,kind:TKIND[r.x.instrumentType]||"other",verdict:"hold",...body});
-    seen.add(uid);
+    const tk=info.ticker||r.x.ticker||"", free=q=>!used.has(q.id);
+    let pos=state.positions.find(q=>free(q)&&q.tuid===uid&&q.account===accId)
+      ||state.positions.find(q=>free(q)&&!q.tuid&&q.account===accId&&tk&&normT(q.ticker)===normT(tk))
+      ||state.positions.find(q=>free(q)&&!q.tuid&&!q.account&&tk&&normT(q.ticker)===normT(tk))
+      // typed in by hand under a ticker the broker does not use (e.g. a closed-end fund): match by name
+      ||state.positions.find(q=>free(q)&&!q.tuid&&q.account===accId&&!brokerT.has(normT(q.ticker))&&nameLike(q.name,info.name));
+    const body={account:accId,tuid:uid,ticker:tk||(pos&&pos.ticker)||"",qty:r.q,value:Math.round(r.native*f),nkd:Math.round(r.nkd*f),cost:Math.round(r.cost*f),fx:r.cur==="rub"?1:+f.toFixed(4)};
+    const id=pos?pos.id:"tinv-"+accId+"-"+uid;
+    if(pos) putDoc("positions",id,body);
+    else putDoc("positions",id,{name:info.name||tk||uid,kind:TKIND[r.x.instrumentType]||"other",verdict:"hold",...body});
+    used.add(id);
   }
-  for(const q of state.positions.filter(q=>q.account===accId&&q.tuid&&!seen.has(q.tuid)&&(num(q.value)||num(q.qty)))) putDoc("positions",q.id,{value:0,cost:0,qty:0});
+  // The broker is the source of truth for this account: papers it no longer reports and old hand-typed
+  // records are worth 0 now (the record and its decision stay), so nothing is counted twice.
+  for(const q of state.positions.filter(q=>q.account===accId&&!used.has(q.id)&&(num(q.value)||num(q.qty)||num(q.cost)||num(q.nkd)))) putDoc("positions",q.id,{value:0,cost:0,qty:0,nkd:0});
   return {accId,total,cash,positions:rows.length};
 }
 // Coupons and dividends (also those paid straight to a card) + a 12-month summary of every non-trade operation
 async function tinvOps(a,inst,manual){
   const now=Date.now(), yearAgo=now-365*864e5;
+  const full=!tinv.opsFrom[a.id];
   let from=tinv.opsFrom[a.id]||a.openedDate||new Date(now-3*365*864e5).toISOString();
   if(manual&&Date.parse(from)>now-370*864e5) from=new Date(now-370*864e5).toISOString();
   const items=[]; let cursor="",guard=0;
@@ -1074,6 +1163,9 @@ async function tinvOps(a,inst,manual){
     for(const it of items){if(Date.parse(it.date)<yearAgo)continue;const cur=String((it.payment&&it.payment.currency)||"rub").toLowerCase();
       const key=(it.type||"?")+(cur!=="rub"?"|"+cur:"");const t=types[key]||(types[key]={n:0,sum:0});t.n++;t.sum+=mv(it.payment)}
     tinv.opsStat[a.id]={at:now,types}}
+  const fl=tinv.flows[a.id]||(tinv.flows[a.id]={});
+  for(const it of items){const f=flowOf(it), day=String(it.date||"").slice(0,10);
+    if(f) fl[it.id]=[day,Math.round(f)]; else if(it.type==="OPERATION_TYPE_INPUT_SECURITIES"||it.type==="OPERATION_TYPE_OUTPUT_SECURITIES") fl[it.id]=[day,0,1]}
   const divs=items.filter(it=>it.type==="OPERATION_TYPE_DIVIDEND");
   let added=0, lookups=0;
   for(const it of items){
@@ -1092,11 +1184,98 @@ async function tinvOps(a,inst,manual){
     added++;
   }
   tinv.opsFrom[a.id]=new Date(now-14*864e5).toISOString();
+  if(full) (tinv.flowsDone||(tinv.flowsDone={}))[a.id]=true;
   return added;
 }
+function flowOf(it){
+  if(String((it.payment&&it.payment.currency)||"rub").toLowerCase()!=="rub") return 0;
+  const p=Math.abs(mv(it.payment)), t=it.type;
+  if(FLOW_IN.includes(t)) return p;
+  if(FLOW_OUT.includes(t)||t==="OPERATION_TYPE_DIV_EXT") return -p;
+  if(t==="OPERATION_TYPE_INPUT_SECURITIES"||t==="OPERATION_TYPE_OUTPUT_SECURITIES"){
+    const v=p||Math.abs(mv(it.price)*(Number(it.quantity)||0)); return t==="OPERATION_TYPE_INPUT_SECURITIES"?v:-v}
+  return 0;
+}
+// Known payouts of the next 12 months, per paper: coupon schedule, declared dividends; funds — by last year's payouts
+function loadFc(){try{return JSON.parse(localStorage.getItem(TINV_FC_KEY)||"{}")||{}}catch(e){return {}}}
+function saveFc(m){try{localStorage.setItem(TINV_FC_KEY,JSON.stringify(m))}catch(e){}}
+async function tinvForecast(manual,inst){
+  const fc=loadFc(), now=Date.now(), YR=365*864e5, to=new Date(now+YR).toISOString(), real=t=>t>Date.UTC(2000,0,1);
+  const live=state.positions.filter(p=>p.tuid&&num(p.qty)>0&&isAuto(state.accounts.find(a=>a.id===p.account)));
+  let calls=0, changed=false; const max=manual?150:100;
+  const put=(uid,v)=>{const o=fc[uid]; if(!o||o.per!==v.per||!!o.err!==!!v.err||o.kind!==v.kind||o.unknown!==v.unknown) changed=true; fc[uid]=v};
+  for(const uid of [...new Set(live.map(p=>p.tuid))]){
+    const c=fc[uid]; if(c&&now-c.at<(c.err?TINV_FC_TTL/6:TINV_FC_TTL)) continue;
+    const p=live.find(x=>x.tuid===uid), ty=((inst||{})[uid]||{}).type||(p.kind==="fund"?"etf":p.kind);
+    if(ty!=="bond"&&ty!=="share"){put(uid,{at:now,kind:"fund"});continue}
+    if(calls++>=max) break;
+    try{
+      if(ty==="bond"){
+        const r=await tcall("InstrumentsService/GetBondCoupons",{instrumentId:uid,from:new Date(now).toISOString(),to});
+        let per=0,unknown=0,cur="rub";
+        for(const e of r.events||[]){const d=Date.parse(e.couponDate||""); if(real(d)&&(d<now-864e5||d>now+YR)) continue;
+          const v=mv(e.payOneBond); if(v>0){per+=v;cur=String(e.payOneBond.currency||"rub").toLowerCase()}else unknown++}
+        put(uid,{at:now,kind:"bond",per,cur,unknown});
+      }else{
+        const r=await tcall("InstrumentsService/GetDividends",{instrumentId:uid,from:new Date(now-120*864e5).toISOString(),to});
+        let per=0,cur="rub";
+        for(const d of r.dividends||[]){
+          const pd=Date.parse(d.paymentDate||""), rd=Date.parse(d.recordDate||""), when=real(pd)?pd:real(rd)?rd+30*864e5:NaN;
+          if(!(when>=now-864e5&&when<=now+YR)) continue;
+          const v=mv(d.dividendNet); if(v>0){per+=v;cur=String(d.dividendNet.currency||"rub").toLowerCase()}}
+        put(uid,{at:now,kind:"share",per,cur});
+      }
+    }catch(e){if(fatal(e))throw e; if(e&&e.status===429)break; put(uid,{at:now,kind:ty,err:1})}
+  }
+  saveFc(fc); if(changed) tinv.fcRev=(tinv.fcRev||0)+1;
+}
+// Forecast of the next 12 months for the T-Bank papers: only amounts that are already known (like renta.life)
+function forecast(){
+  const fc=loadFc(), items={}; let sum=0,live=0,pending=0,unknown=0,known=0;
+  for(const p of state.positions){
+    if(!p.tuid||!(num(p.qty)>0)) continue; const acc=state.accounts.find(a=>a.id===p.account); if(!isAuto(acc)) continue;
+    live++; const c=fc[p.tuid]; if(!c){pending++;continue}
+    if(c.err){unknown++;items[p.id]={v:0,u:1,k:c.kind};continue}
+    let v=0,how="",u=0;
+    if(c.kind==="fund"){v=state.payouts.filter(x=>x.src==="tinvest"&&x.tuid===p.tuid&&x.tacc===acc.tid&&inLast12(x.month)).reduce((s,x)=>s+num(x.amount),0);how="как за прошлый год"}
+    else{const fx=c.cur==="rub"?1:num(p.fx)>0&&num(p.fx)!==1?num(p.fx):0;
+      if(c.per>0&&!fx){unknown++;items[p.id]={v:0,u:1,k:c.kind};continue}
+      v=c.per*num(p.qty)*fx; how=c.kind==="bond"?"купоны по графику":"объявленные дивиденды"; if(c.unknown){u=1;unknown++}}
+    if(v>0){sum+=v;known++}
+    items[p.id]={v,how,u,k:c.kind};
+  }
+  const base=state.accounts.filter(isAuto).reduce((s,a)=>s+num(a.value)+num(a.cash),0);
+  return {sum,known,live,pending,unknown,items,base,pct:base?sum/base*100:0};
+}
+// All-time result like renta.life: value now minus deposits plus withdrawals, and the money-weighted return (XIRR)
+function xirr(cf){
+  if(!cf.some(c=>c[1]<0)||!cf.some(c=>c[1]>0)) return null;
+  const t0=Math.min(...cf.map(c=>c[0])), ys=cf.map(c=>[(c[0]-t0)/(365*864e5),c[1]]);
+  const npv=r=>ys.reduce((s,[y,a])=>s+a/Math.pow(1+r,y),0);
+  let lo=-0.99,hi=10,flo=npv(lo); if(flo*npv(hi)>0) return null;
+  for(let i=0;i<200;i++){const mid=(lo+hi)/2,fm=npv(mid);if(Math.abs(fm)<1e-6)return mid;if(flo*fm<0)hi=mid;else{lo=mid;flo=fm}}
+  return (lo+hi)/2;
+}
+function tResult(){
+  if(!tinv.token) return null;
+  const ok=(tinv.accs||[]).filter(d=>d.ok); if(!ok.length) return null;
+  const done=tinv.flowsDone||{}, fl=tinv.flows||{}, accs=ok.filter(d=>done[d.id]&&fl[d.id]);
+  if(!accs.length) return {pending:true};
+  const cf=[]; let dep=0,wd=0,unpriced=0;
+  for(const d of accs) for(const [day,amt,flag] of Object.values(fl[d.id])){const t=Date.parse(day); if(flag)unpriced++; if(!isFinite(t)||!amt) continue; cf.push([t,-amt]); if(amt>0)dep+=amt; else wd-=amt}
+  if(!cf.length) return {noflows:true};
+  const value=accs.reduce((s,d)=>s+d.total,0), net=dep-wd, ids=new Set(accs.map(d=>d.acc)), tids=new Set(accs.map(d=>d.id));
+  const reval=state.positions.filter(p=>p.tuid&&ids.has(p.account)&&num(p.qty)>0&&num(p.cost)>0).reduce((s,p)=>s+num(p.value)-num(p.nkd)-num(p.cost),0);
+  const income=state.payouts.filter(p=>p.src==="tinvest"&&tids.has(p.tacc)).reduce((s,p)=>s+num(p.amount),0);
+  const since=Math.min(...cf.map(c=>c[0])), x=Date.now()-since>=60*864e5?xirr(cf.concat([[Date.now(),value]])):null;
+  return {value,dep,wd,net,result:value-net,reval,income,other:value-net-reval-income,xirr:x!=null&&isFinite(x)&&Math.abs(x)<10?x:null,since,unpriced,
+    missing:ok.filter(d=>!accs.includes(d)).map(d=>d.name||"счёт")};
+}
+const pctS=v=>(v>0.05?"+":v<-0.05?"−":"")+Math.abs(v).toLocaleString("ru-RU",{maximumFractionDigits:1,minimumFractionDigits:Math.abs(v)<10?1:0})+"%";
 const fatal=e=>e&&(e.kind==="auth"||e.kind==="blocked"||e.kind==="offline");
 const errShort=e=>String(tinvErrorText(e)).slice(0,160);
-function dataSig(){return JSON.stringify([state.accounts.map(a=>[a.id,a.value,a.cash]),state.positions.map(p=>[p.id,p.value,p.qty,p.cost]),state.payouts.length,state.demo])}
+function dataSig(){return JSON.stringify([state.accounts.map(a=>[a.id,a.value,a.cash]),state.positions.map(p=>[p.id,p.value,p.qty,p.cost]),state.payouts.length,state.demo,
+  Object.keys(tinv.flowsDone||{}).join(),Object.values(tinv.flows||{}).reduce((n,f)=>n+Object.keys(f).length,0),tinv.fcRev||0])}
 async function tinvSync(manual){
   if(!tinv.token) return;
   if(tinvBusy){if(manual)toast("Уже обновляю…");return}
@@ -1108,8 +1287,8 @@ async function tinvSync(manual){
     const all=(await tcall("UsersService/GetAccounts",{})).accounts||[];
     if(state.demo&&!db) dropDemo();
     const inst=loadInst();
-    if(tinv.opsVer!==TINV_OPS_VER) tinv.opsFrom={};
-    tinv.opsFrom=tinv.opsFrom||{}; tinv.opsStat=tinv.opsStat||{};
+    if(tinv.opsVer!==TINV_OPS_VER){tinv.opsFrom={};tinv.flows={};tinv.flowsDone={}}
+    tinv.opsFrom=tinv.opsFrom||{}; tinv.opsStat=tinv.opsStat||{}; tinv.flows=tinv.flows||{};
     const diag=[], keys=[]; let total=0, firstErr=null;
     for(const a of all){
       const d={id:a.id,name:a.name||"",type:a.type||"",access:a.accessLevel||""}; diag.push(d);
@@ -1121,6 +1300,7 @@ async function tinvSync(manual){
       catch(e){if(fatal(e))throw e;d.error=errShort(e);firstErr=firstErr||e;sum.failed++;continue}
       if(doOps){try{sum.payouts+=await tinvOps(a,inst,manual)}catch(e){if(fatal(e))throw e;d.opsError=errShort(e)}}
     }
+    if(doOps&&sum.accounts){try{await tinvForecast(manual,inst)}catch(e){if(fatal(e))throw e}}
     saveInst(inst); if(!db) saveLocal();
     tinv.accs=diag; tinv.lastSum=sum;
     if(!sum.accounts) throw firstErr||{kind:"noacc"};
@@ -1256,7 +1436,7 @@ function connect(){
     <button class="btn primary" type="submit">${on?"Сохранить":"Подключить"}</button>
   </form>
   <p class="note">Где взять токен: <a href="https://www.tbank.ru/invest/settings/api/" target="_blank" rel="noopener">настройки Т-Инвестиций → Токены T-Invest API</a> → «Создать токен» → <b>только для чтения</b>, доступ ко всем счетам. Таким токеном нельзя торговать и выводить деньги. Токен хранится только в этом браузере, не попадает в экспорт и в репозиторий и отправляется только в Т-Инвестиции${tinv.proxy?" через ваш прокси":""}.</p>
-  <p class="note">Что подтягивается: стоимость и свободные деньги каждого счёта и бумаги с количеством, ценой и средней ценой покупки — каждую минуту; купоны и дивиденды, в том числе выплаченные на карту, — раз в 10 минут и кнопкой «Синхронизировать сейчас». Решения «держать / продать» и блоки «штанги» сохраняются. Ручные выплаты, которые дублируют Т-Банк, удаляются одной кнопкой во вкладке «Пассив и дивиденды».</p>
+  <p class="note">Что подтягивается: стоимость и свободные деньги каждого счёта и бумаги с количеством, ценой и средней ценой покупки — каждую минуту; купоны и дивиденды, в том числе выплаченные на карту, пополнения и выводы за всё время (для результата и XIRR во вкладке «Портфель») и график будущих купонов и объявленных дивидендов (для прогноза выплат) — раз в 10 минут и кнопкой «Синхронизировать сейчас». Решения «держать / продать» и блоки «штанги» сохраняются. Ручные выплаты, которые дублируют Т-Банк, удаляются одной кнопкой во вкладке «Пассив и дивиденды».</p>
   <details id="tinv-proxy-help" ${e&&e.kind==="blocked"?"open":""} style="margin-top:12px"><summary style="font-weight:500">Если браузер не пускает запросы: прокси на Cloudflare</summary>
     <ol style="margin:10px 0;padding-left:20px;display:grid;gap:6px;max-width:70ch">
       <li>Зайдите на <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">dash.cloudflare.com</a> (бесплатный аккаунт) → Workers & Pages → Create → Worker. Назовите, например, <code>capital-proxy</code>, нажмите Deploy.</li>
@@ -1275,7 +1455,7 @@ function renderConnLive(){const el=document.getElementById("tinv-sync");if(el){e
 function bindConnect(){
   const f=document.getElementById("tinv-form"); if(f) f.addEventListener("submit",e=>{e.preventDefault();
     const v=document.getElementById("tinv-token").value.trim(); if(!v) return;
-    tinv.token=v; tinv.lastError=null; tinv.opsFrom={}; tinv.opsVer=0; tinv.lastTotal=null; tinv.lastDelta=null; tinv.totalKey=""; tinv.accs=[]; tinv.opsStat={};
+    tinv.token=v; tinv.lastError=null; tinv.opsFrom={}; tinv.opsVer=0; tinv.lastTotal=null; tinv.lastDelta=null; tinv.totalKey=""; tinv.accs=[]; tinv.opsStat={}; tinv.flows={}; tinv.flowsDone={};
     if(tinv.auto==null) tinv.auto=true; saveTinv(); tinvSchedule(); render(); tinvSync(true)});
   const sb=document.getElementById("tinv-sync"); if(sb) sb.onclick=()=>tinvSync(true);
   const au=document.getElementById("tinv-auto"); if(au) au.onchange=()=>{tinv.auto=au.checked;saveTinv();tinvSchedule();if(au.checked)tinvTick()};
