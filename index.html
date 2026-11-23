@@ -157,6 +157,19 @@ main a{color:var(--accent)}
 @keyframes pulse{50%{opacity:.25}}
 @keyframes flash{0%{background:var(--accent-soft);box-shadow:0 0 0 4px var(--accent-soft)}100%{background:transparent;box-shadow:0 0 0 4px transparent}}
 .hstat b{border-radius:5px}
+/* snowball, analysis, advice */
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:0 0 14px}
+.trio>div{border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:3px;align-content:start}
+.trio b{font:500 21px var(--display);letter-spacing:-.02em}
+.trio .muted{font-size:12px;line-height:1.35}
+.todo>div{display:grid;grid-template-columns:118px minmax(0,1fr);gap:4px 14px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.todo>div:first-child{padding-top:2px}
+.todo>div:last-child{border-bottom:0}
+.todo .pill{justify-self:start;margin-top:1px}
+.todo p{margin:3px 0 0;font-size:13px;max-width:90ch}
+@media (max-width:560px){.todo>div{grid-template-columns:minmax(0,1fr)}}
+.rng{position:relative;display:inline-block;width:56px;height:4px;background:var(--line);border-radius:99px;vertical-align:middle;margin-right:7px}
+.rng i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-left:-5px;box-shadow:0 0 0 2px var(--surface)}
 </style>
 
 <header>
@@ -178,6 +191,8 @@ main a{color:var(--accent)}
     <nav role="tablist" id="tabs">
       <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
       <button role="tab" data-tab="portfolio" aria-selected="false">Портфель</button>
+      <button role="tab" data-tab="analysis" aria-selected="false">Анализ бумаг</button>
+      <button role="tab" data-tab="advice" aria-selected="false">Рекомендации</button>
       <button role="tab" data-tab="income" aria-selected="false">Пассив и дивиденды</button>
       <button role="tab" data-tab="plans" aria-selected="false">Планы</button>
       <button role="tab" data-tab="accounts" aria-selected="false">Счета</button>
@@ -210,7 +225,7 @@ const SAMPLE_DATA={"settings":{"contribution":150000,"rate":16},"accounts":[{"id
 "tasks":[{"id":"demo-t1","title":"Внести свои счета или импортировать файл данных","group":"Сейчас","done":false}],"qual":[]};
 
 // Example state shown only until the store answers / when the store is unavailable.
-const DEFAULT_SETTINGS={contribution:200000,rate:17,base:"liquid",goalIncome:300000,divGrowth:0,indexation:5,reinvest:"all",horizon:5,taxRate:13,newYield:0,target:{ofz:40,div:15,reit:20,corp:10,cash:5,foreign:10,other:0}};
+const DEFAULT_SETTINGS={contribution:200000,rate:17,base:"liquid",goalIncome:300000,divGrowth:0,indexation:5,reinvest:"all",horizon:5,taxRate:13,newYield:0,keyRate:14,advNoReit:true,advUseCash:true,target:{ofz:40,div:15,reit:20,corp:10,cash:5,foreign:10,other:0}};
 const COLLS=["accounts","positions","payouts","months","plans","tasks","qual"];
 const state={settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),accounts:[],positions:[],payouts:[],months:[],plans:[],tasks:[],qual:[],loaded:false,demo:false};
 let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
@@ -318,7 +333,7 @@ function render(){
     <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json. ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,portfolio,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
+  const views={overview,portfolio,analysis,advice,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
   main.innerHTML=banner+(views[tab]||overview)();
   main.querySelectorAll("details[id]").forEach(d=>{if(dOpen.has(d.id))d.open=true});
   bind();
@@ -327,7 +342,8 @@ function render(){
   main.querySelectorAll(".segbar span").forEach(x=>{if(x.scrollWidth>x.clientWidth+1)x.textContent=""});
 }
 function setTab(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
-  try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0})}
+  try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0});
+  if((t==="analysis"||t==="advice")&&tinvAutoOK()&&!tinvBusy&&Date.now()-(tinv.tried||0)>15000){const pr=anProgress();if(pr.done<pr.all)tinvSync(false)}}
 
 // ----- Overview -----
 function overview(){
@@ -347,6 +363,7 @@ function overview(){
     <div class="panel kpi"><small>Пассивный доход</small><div class="v">${rub(t.passive)}</div><div class="n">в месяц, факт за 12 мес${F.sum>0?` · прогноз Т-Банка ≈ ${rub(F.sum/12)}`:""}</div></div>
     <div class="panel kpi"><small>Норма сбережений</small><div class="v">${avgSave==null?"—":Math.round(avgSave/Math.max(1,avgInc)*100)+"%"}</div><div class="n">${avgSave==null?"заполните «Бюджет»":"откладываю ~"+rub(avgSave)+" / мес"}</div></div>
   </section>
+  <section class="panel" id="snow" aria-label="Снежный ком"></section>
   <section class="grid two">
     <div class="panel">
       <h2>Путь к 40 млн <span class="sub">база: ${baseLabel} — ${mln(t.goalBase)}</span></h2>
@@ -366,7 +383,7 @@ function overview(){
         <div class="legend"><span><i style="background:var(--accent)"></i>ликвидное</span><span><i style="background:var(--brass)"></i>имущество</span></div>
       </div>
       <div class="panel">
-        <h2>Бумаги</h2>
+        <h2>Бумаги <button class="btn" data-goto="advice" style="margin-left:auto;padding:4px 10px;font-size:12px">Рекомендации →</button></h2>
         <div class="alloc">
           <div class="row"><span>Позиций в учёте</span><b>${state.positions.length}</b></div>
           ${R&&R.result!=null?`<div class="row"><span>Результат за всё время, Т-Банк</span><b class="${R.result>=0?"up":"down"}">${signed(R.result)}${R.xirr!=null?` · ${pctS(R.xirr*100)} в год`:""}</b></div>`:""}
@@ -379,6 +396,7 @@ function overview(){
 }
 function renderOverviewLive(){
   renderHero();
+  const sn=document.getElementById("snow"); if(sn){sn.innerHTML=snowHTML();const st=document.getElementById("snow-table");if(st)st.addEventListener("toggle",()=>{snowOpen=st.open})}
   const g=document.getElementById("goals"); if(!g) return;
   const t=totals(), s=state.settings;
   const goals=LADDER.map(v=>({n:(v/1e6)+" млн",v}));
@@ -541,6 +559,13 @@ function srcCell(a){
   return `<span class="pill hold">вручную</span> <span class="src">${a.updated?"обновлено "+new Date(a.updated).toLocaleDateString("ru-RU",{day:"numeric",month:"short"}):a.note?esc(a.note):"дата не указана"}</span>`;
 }
 const nPapers=n=>n%10===1&&n%100!==11?"бумага":[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?"бумаги":"бумаг";
+function periodRows(){
+  const P=periods(); if(!P.first) return "";
+  const Y=new Date().getFullYear(), d12=new Date(Date.parse(P.first)+365*864e5);
+  const row=(label,x,later)=>`<div class="row"><span>${label}<span class="sm">${x?`с ${fmtDay(x.day)} · ${signed(x.pnl)} без пополнений и выводов`:later}</span></span><b class="${x?(x.r>=0?"up":"down"):"muted"}">${x?pctS(x.r*100):"—"}</b></div>`;
+  return row("С начала года",P.ytd,`появится в январе ${Y+1}: сайт записывает стоимость счетов каждый день с ${fmtDay(P.first)}`)
+    +row("За 12 месяцев",P.y12,`появится в ${MONTHS_IN[d12.getMonth()]} ${d12.getFullYear()}`);
+}
 function resultPanel(R){
   if(!tinv.token) return "";
   const head=`<h2>Результат за всё время <span class="sub">счета Т-Банка — считается так же, как в renta.life</span></h2>`;
@@ -555,6 +580,7 @@ function resultPanel(R){
       <div class="row"><span>Внесли за всё время<span class="sm">пополнения ${rub(R.dep)}${R.wd?` минус выводы ${rub(R.wd)}`:""} · с ${since}</span></span><b>${rub(R.net)}</b></div>
       <div class="row tot"><span>Результат = стоят сейчас − внесли</span><b class="big2 ${cls(R.result)}">${signed(R.result)}</b></div>
       <div class="row"><span>XIRR — доходность ваших денег<span class="sm">${R.xirr==null?"не посчитать: история короче двух месяцев или деньги только выводились":"в год, с учётом того, когда вносили и выводили деньги"}</span></span><b class="big2 ${R.xirr==null?"":cls(R.xirr)}">${R.xirr==null?"—":pctS(R.xirr*100)}</b></div>
+      ${periodRows()}
     </div>
     <div class="alloc" style="align-content:start">
       <span class="cap">Из чего сложился результат</span>
@@ -563,7 +589,7 @@ function resultPanel(R){
       <div class="row"><span>Проданные бумаги, НКД, комиссии, налоги<span class="sm">всё остальное: прибыль и убыток прошлых сделок минус расходы</span></span><b class="${cls(R.other)}">${signed(R.other)}</b></div>
     </div>
   </div>
-  <p class="note">Результат — сколько счета стоят сейчас минус сколько вы на них внесли (пополнения минус выводы), поэтому сюда входят и полученные выплаты, и закрытые сделки. «Результат по бумагам» раньше показывал только переоценку текущих бумаг — отсюда была разница с renta.life. Дивиденды, выплаченные сразу на карту, считаются выведенными деньгами. «С начала года» и «за 12 месяцев» renta.life считает по своей истории стоимости портфеля; у сайта такой истории нет, поэтому здесь — за всё время. ВТБ и Инвестпалата сюда не входят: их операции сайт не видит.${R.missing.length?` Без ${R.missing.map(n=>"«"+esc(n)+"»").join(", ")}: история операций этого счёта не загрузилась.`:""}${R.unpriced?` ${R.unpriced} ${R.unpriced===1?"перевод":"переводов"} бумаг от другого брокера пришли без цены — их стоимость не попала во «внесли», поэтому результат может быть завышен.`:""}</p></div>`;
+  <p class="note">Результат — сколько счета стоят сейчас минус сколько вы на них внесли (пополнения минус выводы), поэтому сюда входят и полученные выплаты, и закрытые сделки. «Результат по бумагам» раньше показывал только переоценку текущих бумаг — отсюда была разница с renta.life. Дивиденды, выплаченные сразу на карту, считаются выведенными деньгами. «С начала года» и «за 12 месяцев» считаются по ежедневной записи стоимости счетов: пополнения и выводы за период не считаются ни доходом, ни убытком. ВТБ и Инвестпалата сюда не входят: их операции сайт не видит.${R.missing.length?` Без ${R.missing.map(n=>"«"+esc(n)+"»").join(", ")}: история операций этого счёта не загрузилась.`:""}${R.unpriced?` ${R.unpriced} ${R.unpriced===1?"перевод":"переводов"} бумаг от другого брокера пришли без цены — их стоимость не попала во «внесли», поэтому результат может быть завышен.`:""}</p></div>`;
 }
 function portfolio(){
   const t=totals(), d=pfData(), W=Math.max(1,d.whole), R=tResult(), F=forecast();
@@ -616,6 +642,316 @@ function portfolio(){
       <td><span class="pill ${p.verdict in VERDICT?p.verdict:"hold"}">${VERDICT[p.verdict]||"Держать"}</span></td></tr>`}).join("")}
     </tbody><tfoot><tr><td colspan="3">${pfClass==="all"?"Все бумаги":esc((CLASSES.find(c=>c.k===pfClass)||{}).n||"")}</td><td class="num">${rub(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${pct(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${signed(list.filter(p=>num(p.cost)>0).reduce((x,p)=>x+rv(p),0))}</td><td class="num">${rub(list.reduce((x,p)=>x+((F.items[p.id]||{}).v||0),0))}</td><td></td></tr></tfoot></table></div>`:""}
     <p class="note">Доля — от всего портфеля (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Переоценка — текущая цена минус цена покупки, без накопленного купонного дохода${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}. Выплаты за 12 мес — прогноз по известным суммам, до налога: купоны по графику, объявленные дивиденды, у фондов — как за прошлый год.${d.empty?` Ещё ${d.empty} ${nPapers(d.empty)} без текущей стоимости ${d.empty%10===1&&d.empty%100!==11?"не показана":"не показаны"} — заполните «Стоит сейчас» во вкладке «Бумаги».`:""} Решения меняются во вкладке «Бумаги».</p>
+  </div>`;
+}
+
+// ----- Snowball: what grows the capital each month — your contribution, payouts or prices -----
+// Same model as «Путь к 40 млн»: monthly compounding at the hero's rate, flat contribution. The rate is split into
+// payouts (as much as the last 12 months brought, reinvested) and price growth (the rest).
+function snowSim(){
+  const s=state.settings, t=totals(), b=incomeBase(), r=Math.max(0,num(s.rate))/100, C=Math.max(0,num(s.contribution));
+  const y=Math.min(r,b.curYield!=null?b.curYield/100:0), g=r-y, now=new Date(), y0=now.getFullYear(), m0=now.getMonth(), by={};
+  let L=Math.max(0,t.liquid); const first={c:C,p:L*y/12,g:L*g/12};
+  for(let i=0;i<120+(12-m0);i++){
+    const yr=y0+Math.floor((m0+i)/12), pm=L*y/12, gm=L*g/12, o=by[yr]||(by[yr]={year:yr,c:0,p:0,g:0,n:0});
+    o.c+=C;o.p+=pm;o.g+=gm;o.n++; L+=C+pm+gm; o.end=L;
+  }
+  const rows=Object.values(by).filter(o=>o.year>y0&&o.n===12).map(o=>({year:o.year,c:o.c/12,p:o.p/12,g:o.g/12,end:o.end}));
+  const over=first.p+first.g>first.c?"now":(rows.find(o=>o.p+o.g>o.c)||{}).year||null;
+  return {first,rows,y,g,r,C,over,cross:r>0&&C>0?C*12/r:null};
+}
+const SNOWSEG=[["c","var(--s1)","пополнение с зарплаты"],["p","var(--s2)","купоны и дивиденды"],["g","var(--s3)","рост цен"]];
+const fmtM=v=>v>=1e6?(v/1e6).toLocaleString("ru-RU",{maximumFractionDigits:2})+" млн":k(v);
+function snowChart(S){
+  const rows=[{year:"сейчас",...S.first},...S.rows], W=660,H=250,pl=48,pr=10,pt=34,pb=24, n=rows.length, tot=o=>o.c+o.p+o.g;
+  const max=Math.max(1,...rows.map(tot)), raw=max/4, p10=Math.pow(10,Math.floor(Math.log10(raw))), step=[1,2,5,10].map(q=>q*p10).find(v=>v>=raw), top=Math.ceil(max/step)*step;
+  const base=H-pb, sy=v=>(base-pt)*v/top, slot=(W-pl-pr)/n, bw=Math.min(24,slot*0.6);
+  // a column: square at the baseline, 4px rounded top on the last segment
+  const col=(x,y,w,h,r)=>h<=0?"":r&&h>r?`M${x} ${y+h}V${y+r}Q${x} ${y} ${x+r} ${y}H${x+w-r}Q${x+w} ${y} ${x+w} ${y+r}V${y+h}Z`:`M${x} ${y+h}V${y}H${x+w}V${y+h}Z`;
+  let grid=""; for(let v=0;v<=top+1e-6;v+=step){const y=(base-sy(v)).toFixed(1); grid+=`<line x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${pl-6}" y="${(+y+4).toFixed(1)}" text-anchor="end">${v?fmtM(v):"0"}</text>`}
+  let bars="", mark="";
+  rows.forEach((o,i)=>{
+    const cx=pl+slot*(i+0.5), x=+(cx-bw/2).toFixed(1), segs=SNOWSEG.filter(([key])=>o[key]>0); let yb=base, s="";
+    segs.forEach(([key,c],j)=>{const h=sy(o[key]), gap=j?2:0; s+=`<path d="${col(x,+(yb-h).toFixed(1),+bw.toFixed(1),+(h-gap).toFixed(1),j===segs.length-1?4:0)}" fill="${c}"/>`; yb-=h});
+    const lab=i===0?"Сейчас":o.year+" год";
+    const tip=`${lab}: прирост ≈ ${rub(tot(o))} в месяц — пополнение ${rub(o.c)}, купоны и дивиденды ${rub(o.p)}, рост цен ${rub(o.g)}`;
+    const cap=i===0||i===n-1?`<text x="${cx.toFixed(1)}" y="${(base-sy(tot(o))-6).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${fmtM(tot(o))}</text>`:"";
+    bars+=`<g><title>${tip}</title><rect x="${(pl+slot*i).toFixed(1)}" y="${pt}" width="${slot.toFixed(1)}" height="${base-pt}" fill="transparent"/>${s}${cap}<text x="${cx.toFixed(1)}" y="${H-7}" text-anchor="middle">${i===0?"сейчас":o.year}</text></g>`;
+    if(S.over===o.year){const xl=+(pl+slot*i).toFixed(1), right=xl>W*0.55;
+      mark=`<line x1="${xl}" x2="${xl}" y1="${pt-14}" y2="${base}" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="${right?xl-5:xl+5}" y="${pt-18}" text-anchor="${right?"end":"start"}" style="fill:var(--ink)">с ${o.year} года рынок даёт больше, чем пополнение</text>`}
+  });
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:500px;max-width:880px;display:block;margin-top:6px" role="img" aria-label="Прирост капитала в месяц по годам: пополнение, купоны и дивиденды, рост цен">${grid}${mark}${bars}</svg></div>
+  <div class="legend">${SNOWSEG.map(([,c,l])=>`<span><i style="background:${c}"></i>${l}</span>`).join("")}<span class="muted">наведите на столбик — точные суммы</span></div>`;
+}
+// Money put into the T-Bank accounts over the last 12 months, net of withdrawals (from the operation history)
+function depositsLast12(){
+  if(!tinv.token) return null;
+  const done=tinv.flowsDone||{}, fl=tinv.flows||{}, ok=(tinv.accs||[]).filter(d=>d.ok); if(!ok.length||ok.some(d=>!done[d.id])) return null;
+  const from=Date.now()-365*864e5; let s=0; for(const d of ok) for(const [day,amt] of Object.values(fl[d.id]||{})) if(Date.parse(day)>=from) s+=amt||0;
+  return s;
+}
+let snowOpen=false;
+function snowHTML(){
+  const S=snowSim(), s=state.settings, t=totals(), f=S.first, all=f.c+f.p+f.g, dep=depositsLast12();
+  const head=`<h2>Снежный ком <span class="sub">кто наращивает капитал: вы или сами деньги</span></h2>`;
+  if(!(all>0)) return head+`<div class="empty">Укажите пополнение в месяц и доходность в блоке вверху — здесь появится, сколько прироста дают зарплата, выплаты и рост цен.</div>`;
+  const mk=(f.p+f.g)/all, last=S.rows[S.rows.length-1], mkL=last?(last.p+last.g)/(last.c+last.p+last.g):mk;
+  const T=40e6, h1=t.goalBase<T?project(t.goalBase,t.liquid,S.C,S.r*100,[T]).hit[T]:null, h0=t.goalBase<T?project(t.goalBase,t.liquid,S.C,S.g*100,[T]).hit[T]:null;
+  const snow=h1!=null&&(h0==null||h0>h1)?(h0==null?"больше чем на 20 лет":"на "+durLabel(h0-h1)):null;
+  const pc=v=>Math.round(v*100)+"%", rate=String(num(s.rate)).replace(".",","), yl=(S.y*100).toLocaleString("ru-RU",{maximumFractionDigits:1});
+  return `${head}
+  <div class="trio">
+    <div><span class="cap"><i class="sw" style="background:var(--s1)"></i>Пополнение</span><b>${rub(f.c)}</b><span class="muted">в месяц, как в блоке вверху${dep!=null&&dep>0?` · чистое пополнение <span style="white-space:nowrap">Т-Банка</span> за 12 мес — ${rub(dep)}`:""}</span></div>
+    <div><span class="cap"><i class="sw" style="background:var(--s2)"></i>Купоны и дивиденды</span><b>${rub(f.p)}</b><span class="muted">в месяц, факт за 12 мес${f.c>0&&f.p>0?` · +${pc(f.p/f.c)} к пополнению`:""}</span></div>
+    <div><span class="cap"><i class="sw" style="background:var(--s3)"></i>Рост цен</span><b>${rub(f.g)}</b><span class="muted">в месяц в среднем, при доходности ${rate}% в год</span></div>
+  </div>
+  <p class="lead">Сейчас капитал прирастает в среднем на <b>${rub(all)} в месяц</b>, и ${pc(mk)} этого прироста приносит рынок, а не зарплата${last?`. Через 10 лет — уже ${pc(mkL)}`:""}.
+  ${S.over==="now"?"Рынок уже приносит больше, чем вы докладываете с зарплаты.":S.over?`Когда капитал дойдёт до <b>≈ ${mln(S.cross)}</b>, выплаты и рост цен вместе начнут приносить больше, чем вы докладываете с зарплаты: по этому плану это <b>${S.over} год</b>.`:"За 10 лет рынок не обгонит пополнение: при такой доходности главный вклад остаётся вашим."}
+  ${snow?` Если выплаты тратить, а не вкладывать снова, 40 млн придут <b>${snow} позже</b>: это и есть снежный ком.`:""}</p>
+  ${snowChart(S)}
+  <details id="snow-table" style="margin-top:8px" ${snowOpen?"open":""}><summary class="muted">Таблица по годам: прирост в среднем за месяц</summary>
+    <div class="tablewrap" style="margin-top:6px"><table><thead><tr><th>Год</th><th class="num">Пополнение</th><th class="num">Купоны и дивиденды</th><th class="num">Рост цен</th><th class="num">Прирост в месяц</th><th class="num">Доля рынка</th><th class="num">Капитал в конце года</th></tr></thead><tbody>
+    ${S.rows.map(o=>{const a=o.c+o.p+o.g;return `<tr${S.over===o.year?' style="font-weight:600"':""}><td>${o.year}</td><td class="num">${rub(o.c)}</td><td class="num">${rub(o.p)}</td><td class="num">${rub(o.g)}</td><td class="num">${rub(a)}</td><td class="num">${pc((o.p+o.g)/Math.max(1,a))}</td><td class="num">${mln(o.end)}</td></tr>`}).join("")}
+    </tbody></table></div></details>
+  <p class="note">Модель та же, что у «Пути к 40 млн»: доходность ${rate}% в год и пополнение ${rub(S.C)} из блока вверху. Из доходности ${yl}% — выплаты, как за последние 12 месяцев (они вкладываются снова), остальное — рост цен. Это средние цифры: на деле рынок растёт неровно, бывают и годы падения. Меняйте пополнение и доходность вверху — график пересчитается.</p>`;
+}
+
+// ----- Securities analysis: indicators of every paper -----
+const nfx=(v,d=1)=>v==null||!isFinite(v)?"—":Number(v).toLocaleString("ru-RU",{maximumFractionDigits:d}).replace("-","−");
+const pctN=(v,d=1)=>v==null||!isFinite(v)?"—":nfx(v,d)+"%";
+const DASH=`<span class="muted">—</span>`;
+const REC={buy:["Покупать","buy"],hold:["Держать","hold"],sell:["Продавать","sell"]};
+const RISK=["","низкий","средний","высокий"];
+const FT_LABEL={mm:"денежный рынок",reit:"недвижимость (ЗПИФ)",bond:"облигации",gold:"золото и товары",index:"акции, индекс",equity:"акции",other:"другое"};
+const plural=(n,a,b,c)=>{n=Math.abs(Math.round(n));return n%10===1&&n%100!==11?a:[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?b:c};
+const dmy=t=>new Date(t).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}).replace(/ г\.$/,"");
+const yearsLabel=y=>{if(y==null)return "";if(y<1)return Math.max(1,Math.round(y*12))+" мес";const v=Math.round(y*10)/10;return nfx(v)+" "+(Number.isInteger(v)?plural(v,"год","года","лет"):"года")};
+const shareOf=o=>pctN(o.w*100,o.w<0.1?1:0);
+// share of the whole portfolio held in this company across all accounts
+const shareG=o=>pctN(o.gw*100,o.gw<0.1?1:0)+(o.gn>1?" портфеля на всех счетах вместе":" портфеля");
+function wavg(list,val){let s=0,w=0;for(const o of list){const v=val(o);if(v==null||!isFinite(v))continue;s+=v*o.cv;w+=o.cv}return w?{v:s/w,w}:null}
+function nameCell(o){return `<td style="min-width:170px">${esc(o.p.name)} <span class="muted">${esc(o.p.ticker)}</span>${o.auto?"":`<br><small class="muted">${esc(o.acc.name||"без счёта")} · внесено вручную</small>`}</td>`}
+function couponLabel(i){const n=i.cpy;return (i.float?"плавающий":"постоянный")+(n?`, ${n} ${plural(n,"раз","раза","раз")} в год`:"")+(i.amort?", с амортизацией":"")+(i.offer&&i.offer>Date.now()?`<br><small class="muted">оферта ${dmy(i.offer)}</small>`:"")}
+const goodF=o=>o.fund&&!o.fund.err&&!o.fund.none?o.fund:null, goodC=o=>o.cons&&o.cons.rec?o.cons:null;
+function analysis(){
+  const P=paperFacts(), L=P.list, auto=L.filter(o=>o.auto), pr=tinv.token?anProgress():null;
+  const bonds=L.filter(o=>o.cls==="bond"), shares=L.filter(o=>o.cls==="share"), funds=L.filter(o=>o.cls==="fund"), others=L.filter(o=>o.cls==="other");
+  const inP=L.reduce((s,o)=>s+o.cv,0), sumOf=l=>l.reduce((s,o)=>s+o.cv,0);
+  const ytm=wavg(bonds,o=>o.bond&&o.bond.ytm), mod=wavg(bonds,o=>o.bond&&o.bond.mod), cy=wavg(bonds,o=>o.bond&&o.bond.curY);
+  const dy=wavg(shares,o=>{const f=goodF(o);return f&&f.dy!=null?f.dy:o.payY});
+  const sec={}, cnt={}; for(const o of L){sec[o.sector]=(sec[o.sector]||0)+o.cv;cnt[o.sector]=(cnt[o.sector]||0)+1}
+  const UNK="Отрасль не известна", known=Object.entries(sec).filter(x=>x[0]!==UNK).sort((a,b)=>b[1]-a[1]), secs=sec[UNK]?known.concat([[UNK,sec[UNK]]]):known;
+  const pS=v=>pctN(v/Math.max(1,inP)*100,v/Math.max(1,inP)<0.1?1:0), top=known.slice(0,5).map(x=>x[0]);
+  const segs=top.map((n,i)=>({n,v:sec[n],c:`var(--s${i+1})`,ink:i===3?"var(--s4-ink)":"#fff"})), restV=inP-top.reduce((v,n)=>v+sec[n],0);
+  if(restV>0.5) segs.push({n:known.length>5?(sec[UNK]?"Остальное и не известно":"Остальное"):UNK,v:restV,c:"var(--s0)",ink:"var(--s0-ink)"});
+  const swOf=n=>{const i=top.indexOf(n);return `<i class="sw" style="background:${i>=0?`var(--s${i+1})`:"var(--s0)"}"></i>`};
+  const loading=pr&&pr.all&&pr.done<pr.all?`<div class="banner">Загружаю показатели из Т-Инвестиций: готово ${pr.done} из ${pr.all} ${nPapers(pr.all)}. Пока открыта эта вкладка, данные догружаются каждую минуту.</div>`:"";
+  const noTok=tinv.token?"":`<div class="banner">Подключите Т-Инвестиции во вкладке «Подключения»: тогда у бумаг Т-Банка появятся доходность облигаций, показатели компаний и прогнозы аналитиков. У бумаг других брокеров здесь только ваши цифры.</div>`;
+  if(!L.length) return noTok+`<div class="panel empty">Бумаг с текущей стоимостью пока нет — добавьте их во вкладке «Бумаги» или подключите Т-Инвестиции.</div>`;
+  const bRow=o=>{const b=o.bond, i=o.info||{};
+    return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td>
+    <td>${i.mat?`${new Date(i.mat).toLocaleDateString("ru-RU",{month:"short",year:"numeric"}).replace(/ г\.$/,"")}<br><small class="muted">через ${yearsLabel(b?b.years:(i.mat-Date.now())/(365.25*864e5))}</small>`:i.perp?"бессрочная":DASH}</td>
+    <td>${o.info?couponLabel(i):DASH}</td>
+    <td class="num">${b&&b.curY!=null?pctN(b.curY):o.payY!=null?pctN(o.payY)+`<br><small class="muted">по выплатам</small>`:DASH}</td>
+    <td class="num">${b&&b.ytm!=null?`<b>${pctN(b.ytm)}</b>${b.unk?`<br><small class="muted">часть купонов ≈</small>`:""}`:o.info&&(i.float||i.amort)?`<small class="muted">не считается</small>`:DASH}</td>
+    <td class="num">${b&&b.mod!=null?"+"+pctN(b.mod):DASH}</td>
+    <td>${i.risk?RISK[i.risk]:o.ofz?"гос.":DASH}</td></tr>`};
+  const sRow=o=>{const f=goodF(o), c=goodC(o), i=o.info||{}, fx=i.cur&&i.cur!=="rub"&&num(o.p.fx)>0?num(o.p.fx):1;
+    const px=num(o.p.qty)>0?num(o.p.value)/num(o.p.qty)/fx:null, rg=f&&f.hi>f.lo&&px!=null&&(!f.cur||!i.cur||f.cur===i.cur)?Math.max(0,Math.min(1,(px-f.lo)/(f.hi-f.lo))):null;
+    return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td><td>${esc(o.sector)}</td>
+    <td class="num">${f&&f.dy!=null?pctN(f.dy):o.payY!=null?pctN(o.payY)+`<br><small class="muted">по выплатам</small>`:DASH}</td>
+    <td class="num">${f&&f.pe?nfx(f.pe):DASH}</td><td class="num">${f&&f.pb?nfx(f.pb,2):DASH}</td><td class="num">${f&&f.roe!=null?pctN(f.roe,0):DASH}</td><td class="num">${f&&f.nde!=null?nfx(f.nde):DASH}</td>
+    <td>${rg!=null?`<span class="rng" title="за 52 недели: от ${nfx(f.lo,2)} до ${nfx(f.hi,2)}, сейчас ${nfx(px,2)}"><i style="left:${(rg*100).toFixed(0)}%"></i></span><small class="muted">${rg<0.25?"у минимума":rg>0.75?"у максимума":"в середине"}</small>`:DASH}</td>
+    <td>${c?`<span class="pill ${(REC[c.rec]||["","hold"])[1]}">${(REC[c.rec]||["—"])[0]}</span>${c.rel?` <span class="${c.rel>=0?"up":"down"}">${pctS(c.rel)}</span>`:""}${c.n?`<br><small class="muted">${c.n} ${plural(c.n,"аналитик","аналитика","аналитиков")}</small>`:""}`:DASH}</td></tr>`};
+  const fRow=o=>{const i=o.info||{};
+    return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td><td>${FT_LABEL[o.ft]||"—"}</td>
+    <td class="num">${o.pay12?rub(o.pay12):DASH}</td><td class="num">${o.payY!=null?pctN(o.payY):DASH}</td><td class="num">${i.fee?pctN(i.fee,2):DASH}</td></tr>`};
+  const foot=(l,cols,extra)=>`<tfoot><tr><td>Итого</td><td class="num">${rub(sumOf(l))}</td><td class="num">${pctN(sumOf(l)/P.W*100,sumOf(l)/P.W<0.1?1:0)}</td>${extra||`<td colspan="${cols}"></td>`}</tr></tfoot>`;
+  return `${noTok}${loading}
+  <section class="grid kpis">
+    <div class="panel kpi"><small>Бумаг в разборе</small><div class="v">${L.length}</div><div class="n">на ${mln(inP)}${tinv.token?` · Т-Банк: ${auto.length}, другие брокеры: ${L.length-auto.length}`:""}</div></div>
+    <div class="panel kpi"><small>Облигации: доходность к погашению</small><div class="v">${ytm?pctN(ytm.v):"—"}</div><div class="n">${ytm?(ytm.w>=sumOf(bonds)-1?"средняя по всем облигациям":`средняя по ${mln(ytm.w)} из ${mln(sumOf(bonds))}`):bonds.length?"нужны данные Т-Инвестиций":"облигаций нет"}${mod?` · если ставки снизятся на 1 п.п., подорожают ≈ на ${pctN(mod.v)}`:""}</div></div>
+    <div class="panel kpi"><small>Акции: дивиденды за 12 месяцев</small><div class="v">${dy?pctN(dy.v):"—"}</div><div class="n">${dy?`к текущей цене, ${dy.w>=sumOf(shares)-1?"средняя по всем акциям":`средняя по ${mln(dy.w)} из ${mln(sumOf(shares))} в акциях`}`:shares.length?"данных о дивидендах пока нет":"акций нет"}</div></div>
+    <div class="panel kpi"><small>Крупнейшая отрасль</small><div class="v" style="font-size:19px">${known[0]?esc(known[0][0]):"—"}</div><div class="n">${known[0]?`${pS(known[0][1])} денег в бумагах${known[1]?` · дальше ${esc(known[1][0])} — ${pS(known[1][1])}`:""}`:"отрасли известны только у бумаг Т-Банка"}</div></div>
+  </section>
+  <div class="panel"><h2>На что приходятся деньги в бумагах <span class="sub">отрасли компаний и типы фондов, ${mln(inP)}</span></h2>
+    <div class="segbar" role="img" aria-label="${segs.map(x=>x.n+" "+pS(x.v)).join(", ")}">${segs.map(x=>`<span style="flex:${x.v} 1 0;background:${x.c};color:${x.ink}" title="${esc(x.n)}: ${rub(x.v)} · ${pS(x.v)}">${pS(x.v)}</span>`).join("")}</div>
+    <div class="tablewrap"><table><thead><tr><th>Отрасль или тип фонда</th><th class="num">Бумаг</th><th class="num">Сумма</th><th class="num">Доля</th></tr></thead><tbody>
+    ${secs.map(([n,v])=>`<tr><td>${swOf(n)}${esc(n)}</td><td class="num">${cnt[n]}</td><td class="num">${rub(v)}</td><td class="num">${pS(v)}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Отрасль — по данным Т-Инвестиций; у бумаг других брокеров — если их тикер нашёлся в Т-Инвестициях. ОФЗ — долг государства, отдельно от компаний.</p>
+  </div>
+  ${bonds.length?`<div class="panel"><h2>Облигации <span class="sub">${bonds.length} ${plural(bonds.length,"выпуск","выпуска","выпусков")} на ${mln(sumOf(bonds))} · условия и график купонов — Т-Инвестиции</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>Облигация</th><th class="num">Стоит</th><th class="num">Доля</th><th>Погашение</th><th>Купон</th><th class="num">Текущая<br>доходность</th><th class="num">Доходность<br>к погашению</th><th class="num">Если ставки<br>−1 п.п.</th><th>Риск</th></tr></thead><tbody>
+    ${[...bonds].sort((a,b)=>b.cv-a.cv).map(bRow).join("")}</tbody>${foot(bonds,0,`<td colspan="2"></td><td class="num">${cy?pctN(cy.v):""}</td><td class="num">${ytm?`<b>${pctN(ytm.v)}</b>`:""}</td><td class="num">${mod?"+"+pctN(mod.v):""}</td><td></td>`)}</table></div>
+    <p class="note">Текущая доходность — купоны ближайших 12 месяцев к цене без НКД. Доходность к погашению — сколько облигация приносит в год, если держать её до погашения (как «эффективная доходность» на Мосбирже); для плавающих купонов и амортизации не считается: будущие выплаты заранее не известны. «Если ставки −1 п.п.» — на сколько примерно вырастет цена, если доходности на рынке снизятся на 1 процентный пункт; при росте ставок цена упадёт на столько же. Риск — оценка Т-Банка.</p></div>`:""}
+  ${shares.length?`<div class="panel"><h2>Акции <span class="sub">${shares.length} ${plural(shares.length,"компания","компании","компаний")} на ${mln(sumOf(shares))} · показатели и прогнозы — Т-Инвестиции, обновляются раз в сутки</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>Акция</th><th class="num">Стоит</th><th class="num">Доля</th><th>Отрасль</th><th class="num">Дивиденды<br>за 12 мес</th><th class="num">P/E</th><th class="num">P/B</th><th class="num">ROE</th><th class="num">Долг /<br>EBITDA</th><th>Цена за год</th><th>Аналитики</th></tr></thead><tbody>
+    ${[...shares].sort((a,b)=>b.cv-a.cv).map(sRow).join("")}</tbody>${foot(shares,8)}</table></div>
+    <p class="note">Дивиденды — выплаты за последние 12 месяцев к текущей цене. P/E — за сколько лет прибыль компании окупит её цену: меньше — дешевле. P/B — цена к собственному капиталу. ROE — сколько прибыли компания зарабатывает на свои деньги за год. Долг / EBITDA — чистый долг в годовых прибылях до налогов и процентов: больше 3 — долг тяжёлый. Цена за год — где цена сейчас между минимумом и максимумом за 52 недели. Аналитики — средний совет и прогноз цены на 12 месяцев.</p></div>`:""}
+  ${funds.length?`<div class="panel"><h2>Фонды и ЗПИФ <span class="sub">${funds.length} на ${mln(sumOf(funds))}</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>Фонд</th><th class="num">Стоит</th><th class="num">Доля</th><th>Во что вкладывает</th><th class="num">Выплаты<br>за 12 мес</th><th class="num">Доходность<br>выплат</th><th class="num">Комиссия<br>в год</th></tr></thead><tbody>
+    ${[...funds].sort((a,b)=>b.cv-a.cv).map(fRow).join("")}</tbody>${foot(funds,4)}</table></div>
+    <p class="note">Многие фонды ничего не выплачивают, а вкладывают доход снова — тогда он виден только в цене пая. Комиссия — сколько фонд берёт в год от стоимости паёв (данные Т-Инвестиций).</p></div>`:""}
+  ${others.length?`<div class="panel"><h2>Прочее <span class="sub">валюта, фьючерсы и другое</span></h2><div class="tablewrap"><table><thead><tr><th>Бумага</th><th class="num">Стоит</th><th class="num">Доля</th></tr></thead><tbody>
+    ${others.map(o=>`<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td></tr>`).join("")}</tbody></table></div></div>`:""}
+  <p class="note" style="margin:0">Доля — от всего ликвидного портфеля (${mln(P.W)}), как во вкладке «Портфель». Что с этим делать — во вкладке <a href="#" data-goto="advice">«Рекомендации»</a>.</p>`;
+}
+
+// ----- Advice: what to do with the portfolio now (simple rules, computed in the browser) -----
+// [label, pill class, decision it sets in «Бумаги»]
+const ACT={buy:["Докупать","buy","buy"],hold:["Держать","hold","hold"],keep:["Держать до погашения","hold","hold"],nobuy:["Держать, не докупать","hold","hold"],
+  cut:["Сократить","watch","watch"],swap:["Заменить","sell","sell"]};
+const BLOCK_HOW={ofz:"ОФЗ с постоянным купоном на 5–15 лет: когда ЦБ снижает ставку, их цена растёт",div:"фонд на индекс Мосбиржи (например, TMOS или EQMX) или 10–15 крупных компаний с дивидендами",
+  reit:"ЗПИФ недвижимости",corp:"облигации компаний с низким риском по оценке Т-Банка или фонд корпоративных облигаций",cash:"фонд денежного рынка (например, LQDT, TMON, AKMM): подушка и деньги для покупок",
+  foreign:"зарубежный счёт или фонды на зарубежные активы и золото: защита от ослабления рубля",other:"—"};
+function adviceAlloc(P){
+  const s=state.settings, tg=s.target||{}, C=Math.max(0,num(s.contribution)), noReit=s.advNoReit!==false, useCash=s.advUseCash!==false, keys=Object.keys(BLOCKS);
+  const fact={}; keys.forEach(b=>fact[b]=0); for(const o of P.list) fact[guessBlock(o.p)]+=o.cv; fact.cash+=P.d.sum.cash;
+  const base=keys.reduce((x,b)=>x+fact[b],0), after=base+C, cushion=num(tg.cash)/100*after;
+  // free money above the cushion (the target of «LQDT / кэш») is invested together with the contribution
+  const spare=useCash?Math.floor(Math.max(0,Math.min(P.d.sum.cash,fact.cash-cushion))/1000)*1000:0, pool=Math.floor((C+spare)/1000)*1000;
+  const skip=b=>b==="other"||(noReit&&b==="reit")||(b==="cash"&&spare>0);
+  const need={}, buy={}; let tot=0;
+  for(const b of keys){need[b]=skip(b)?0:Math.max(0,num(tg[b])/100*after-fact[b]);tot+=need[b]}
+  for(const b of keys) buy[b]=tot>0?(tot>pool?need[b]/tot*pool:need[b]):0;
+  // every block is at its target: the rest goes by the target weights
+  const rest=pool-keys.reduce((x,b)=>x+buy[b],0), w=keys.filter(b=>!skip(b)), ws=w.reduce((x,b)=>x+num(tg[b]),0);
+  if(rest>1&&ws>0) for(const b of w) buy[b]+=rest*num(tg[b])/ws;
+  // whole thousands; what rounding leaves goes to the largest block, so the column adds up
+  for(const b of keys) buy[b]=Math.floor(buy[b]/1000)*1000;
+  const left=pool-keys.reduce((x,b)=>x+buy[b],0), big=keys.reduce((m,b)=>buy[b]>buy[m]?b:m,keys[0]); if(left>0&&buy[big]>0) buy[big]+=left;
+  const under={}; for(const b of keys) under[b]=need[b]>Math.max(1000,after*0.01);
+  return {fact,base,after,buy,need,under,C,spare,pool,cushion,noReit,useCash,none:P.d.sum.none};
+}
+function taxLine(o,rate){const k=o.acc.kind; if(o.pnl==null||k==="iis"||k==="foreign") return null; const loss=-o.pnl;
+  return loss>=Math.max(5000,o.cost*0.05)?{loss,save:loss*rate}:null}
+// Why there are no indicators for a paper, in plain words
+const NODATA={notoken:"подключите Т-Инвестиции во вкладке «Подключения»",none:"тикер не найден в Т-Инвестициях",noticker:"у бумаги не указан тикер",err:"Т-Инвестиции не ответили — попробуем позже",wait:"показатели ещё загружаются"};
+function adviseOne(o,x){
+  const i=o.info||{}, b=o.bond, f=goodF(o), c=goodC(o), R=(act,why,alt)=>({act,why,alt:alt||""}), nd=NODATA[o.look]||NODATA.wait;
+  if(o.cls==="bond"){
+    if(!o.info) return o.ofz?R("hold",`ОФЗ — самая надёжная часть портфеля; доходность не посчитать: ${nd}`):R("hold",`доходность и риск не посчитать: ${nd}`);
+    const yrs=i.mat?(i.mat-Date.now())/(365.25*864e5):null;
+    if(i.risk===3&&o.gw>0.02) return R("cut",`высокий кредитный риск по оценке Т-Банка, а это ${shareG(o)}: если у компании начнутся проблемы, можно потерять большую часть суммы`,"ОФЗ или облигации с низким риском");
+    if(yrs!=null&&yrs<0.5) return R("keep",`погашение ${dmy(i.mat)}${b&&b.back?`: вернётся около ${rub(b.back)}`:""}`,"после погашения — в длинные ОФЗ с постоянным купоном");
+    if(i.float) return R("hold","плавающий купон: когда ЦБ снижает ставку, доход по нему снижается","новые деньги — в ОФЗ с постоянным купоном: они выигрывают от снижения ставки");
+    if(b&&b.ytm!=null&&x.key>0&&b.ytm<x.key-3) return R("swap",`доходность к погашению ${pctN(b.ytm)} — ниже, чем у фонда денежного рынка (около ключевой ставки ${pctN(x.key,2)})`,"ОФЗ или надёжные облигации с доходностью выше");
+    if(o.ofz&&yrs>5&&x.under.ofz) return R("buy",`длинная ОФЗ с постоянным купоном${b&&b.ytm!=null?`, доходность к погашению ${pctN(b.ytm)}`:""}${b&&b.mod!=null?`; если ставки снизятся на 1 п.п., цена вырастет примерно на ${pctN(b.mod)}`:""}`);
+    return R("hold",b&&b.ytm!=null?`доходность к погашению ${pctN(b.ytm)}${yrs!=null?`, погашение через ${yearsLabel(yrs)}`:""}`:yrs!=null?`погашение через ${yearsLabel(yrs)}: держать, купоны вкладывать снова`:"держать до погашения, купоны вкладывать снова");
+  }
+  if(o.cls==="share"){
+    if(o.gw>0.15) return R("cut",`уже ${shareG(o)}: если у одной компании начнутся проблемы, это сильно ударит по всему капиталу`,"часть — в фонд на индекс Мосбиржи, чтобы одна компания была не больше 10%");
+    if(!o.auto&&o.w<0.005&&o.cv<20000) return R("swap",`маленькая позиция на ${rub(o.cv)}: на результат почти не влияет, а следить за ней надо`,"продать и вложить в фонд на индекс Мосбиржи");
+    if(!o.info) return o.gw>0.10?R("nobuy",`уже ${shareG(o)}: больше 10% в одной компании лучше не держать`)
+      :o.pnlPct!=null&&o.pnlPct<=-20?R("swap",`убыток ${pctS(o.pnlPct)}, а показателей компании нет: ${nd}`,"если не уверены, что она отыграет, — продать и вложить в фонд на индекс")
+      :R("hold",`показателей компании нет: ${nd}`);
+    if(c&&c.rec==="sell") return R("swap",`аналитики в среднем советуют продавать${c.rel?`, прогноз цены ${pctS(c.rel)} за 12 месяцев`:""}`,"фонд на индекс Мосбиржи или компания с прогнозом лучше");
+    if(f&&f.ni!=null&&f.ni<0) return R("cut","компания в убытке за последние 12 месяцев: дивиденды под вопросом","фонд на индекс или прибыльные компании с дивидендами");
+    if(f&&f.nde!=null&&f.nde>3.5) return R("cut",`большой долг: ${nfx(f.nde)} годовой прибыли до налогов и процентов (EBITDA); при высокой ставке он съедает прибыль и дивиденды`,"компании с долгом меньше 2 EBITDA или фонд на индекс");
+    if(o.gw>0.10) return R("nobuy",`уже ${shareG(o)}: больше 10% в одной компании лучше не держать`);
+    if(c&&c.rec==="buy"&&c.rel>=15&&x.under.div) return R("buy",`аналитики в среднем советуют покупать: прогноз цены ${pctS(c.rel)} за 12 месяцев${f&&f.dy?`, дивиденды ${pctN(f.dy)} за год`:""}`);
+    if(c&&c.rec==="buy"&&c.rel>=15) return R("hold",`аналитики советуют покупать (прогноз цены ${pctS(c.rel)}), но акций в портфеле уже не меньше цели: держать, а новые деньги — по таблице «Куда вложить»`);
+    if(f&&f.dy!=null&&x.key>0&&f.dy>=x.key-2) return R("hold",`дивиденды ${pctN(f.dy)} за 12 месяцев — почти как ключевая ставка, и цена ещё может вырасти`);
+    return R("hold",c&&c.rel?`аналитики: «${(REC[c.rec]||["—"])[0].toLowerCase()}», прогноз цены ${pctS(c.rel)}`:"заметных проблем в данных нет");
+  }
+  if(o.cls==="fund"){
+    if(o.ft==="mm") return x.mm>0.10?R("cut",`в фондах денежного рынка ${pctN(x.mm*100,0)} портфеля: это подушка, но при снижении ставки их доход падает первым`,"оставить 5–10% портфеля, остальное — в длинные ОФЗ")
+      :R("hold","подушка и деньги для покупок: доход близок к ключевой ставке");
+    if(o.ft==="reit") return R("nobuy",`держим ради выплат${o.payY!=null?` (${pctN(o.payY)} за 12 месяцев)`:""}, но новые ЗПИФ не покупаем: их сложно быстро продать без скидки`);
+    if(i.fee>1.2) return R("swap",`комиссия фонда ${pctN(i.fee,2)} в год съедает заметную часть дохода`,"похожий фонд с комиссией до 1% в год");
+    if((o.ft==="index"||o.ft==="equity")&&x.under.div) return R("buy","фонд акций — самый простой способ держать сразу много компаний, а акций в портфеле меньше цели");
+    if(o.ft==="bond"&&x.under.corp) return R("buy","фонд облигаций компаний: доход выше ОФЗ без выбора отдельных выпусков, а этого блока меньше цели");
+    return R("hold",o.payY!=null?`выплаты ${pctN(o.payY)} за 12 месяцев`:o.ft==="index"||o.ft==="equity"?"фонд акций: держать, акций в портфеле уже не меньше цели":o.ft==="bond"?"фонд облигаций: держать, этого блока уже не меньше цели":"заметных проблем нет");
+  }
+  return R("hold","");
+}
+function shortMetrics(o){const b=o.bond, f=goodF(o), c=goodC(o), i=o.info||{}, a=[];
+  if(o.cls==="bond"){if(b&&b.ytm!=null)a.push(`к погашению ${pctN(b.ytm)}`);else if(b&&b.curY!=null)a.push(`купоны ${pctN(b.curY)} к цене`);
+    if(i.mat)a.push("погашение "+new Date(i.mat).getFullYear()); if(i.float)a.push("плавающий купон"); if(i.risk)a.push("риск "+RISK[i.risk])}
+  if(o.cls==="share"){if(f&&f.dy!=null)a.push(`дивиденды ${pctN(f.dy)}`); if(f&&f.pe)a.push(`P/E ${nfx(f.pe)}`); if(c&&c.rel)a.push(`аналитики ${pctS(c.rel)}`)}
+  if(o.payY!=null&&!(o.cls==="share"&&f&&f.dy!=null)&&!(o.cls==="bond"&&b&&b.curY!=null))a.push(`выплаты ${pctN(o.payY)} за год`);
+  if(o.cls==="fund"&&i.fee)a.push(`комиссия ${pctN(i.fee,2)}`);
+  if(o.pnlPct!=null)a.push(`${o.pnl>=0?"прибыль":"убыток"} ${pctS(o.pnlPct)}`);
+  return a.join(" · ")||"—"}
+function adviceTop(P,x,al){
+  const out=[], s=state.settings, rate=num(s.taxRate)/100, now=new Date(), Q4=now.getMonth()>=9, Y=String(now.getFullYear());
+  const cash=P.d.sum.cash, cashAcc=P.d.rows.filter(r=>r.cash>=10000).sort((a,b)=>b.cash-a.cash);
+  if(cash>Math.max(30000,P.W*0.03)) out.push({pri:1000,tag:["сейчас","buy"],title:`Вложить свободные деньги: ${rub(cash)}`,
+    text:`Сейчас они не приносят дохода: ${cashAcc.map(r=>`${esc(r.a.name)} — ${rub(r.cash)}`).join(", ")}.${x.key>1?` Даже в фонде денежного рынка это ≈ ${rub(cash*(x.key-1)/100/12)} в месяц.`:""}${al.spare>0?` Подушку ≈ ${rub(Math.round(Math.min(cash,al.cushion)/1000)*1000)} держите в фонде денежного рынка, остальные ≈ ${rub(al.spare)} — в блоки из таблицы «Куда вложить деньги».`:" Куда их вложить — в таблице «Куда вложить деньги»."}`});
+  const tl=P.list.map(o=>({o,t:taxLine(o,rate)})).filter(z=>z.t), loss=tl.reduce((v,z)=>v+z.t.loss,0);
+  if(tl.length) out.push({pri:Q4?900:200,tag:[Q4?"до 31 декабря":"в конце года","watch"],title:`Налоговая чистка: ${tl.length} ${nPapers(tl.length)} в убытке на ${rub(loss)}`,
+    text:`Если продать их до последних торгов года и сразу купить обратно, убыток уменьшит налог с прибыли от продаж этого года — до ${rub(loss*rate)}, а бумаги останутся в портфеле. Если прибыли не было, убыток можно перенести на следующие годы через 3-НДФЛ. Эти бумаги помечены в таблице ниже.`});
+  const iis=state.accounts.filter(a=>a.kind==="iis");
+  if(iis.length){let dep=null; const done=tinv.flowsDone||{};
+    if(iis.every(a=>isAuto(a)&&done[a.tid])){dep=0;for(const a of iis) for(const [d,amt] of Object.values((tinv.flows||{})[a.tid]||{})) if(String(d).startsWith(Y)&&amt>0) dep+=amt}
+    const left=dep==null?400000:Math.max(0,400000-dep);
+    if(left>=10000) out.push({pri:Q4?850:150,tag:["до 31 декабря","watch"],title:`Пополнить ИИС${dep==null?"":` ещё на ${rub(left)}`}`,
+      text:dep==null?`Если в этом году вы ещё не вносили деньги на ИИС, 400 000 ₽ до конца года дадут вычет до ${rub(400000*rate)} — для ИИС с вычетом на взносы (тип А или ИИС-3).`
+        :`В этом году на ИИС внесено ${rub(dep)}. Ещё ${rub(left)} до 31 декабря дадут вычет до ${rub(left*rate)} — если ваш ИИС с вычетом на взносы (тип А или ИИС-3).`})}
+  const seen=new Set(), big=P.list.filter(o=>o.gw>0.15&&!o.ofz&&!(o.cls==="fund"&&["mm","index","bond"].includes(o.ft))).sort((a,b)=>b.gw-a.gw||b.w-a.w).filter(o=>!seen.has(o.gk)&&seen.add(o.gk));
+  if(big.length) out.push({pri:700,tag:["риск","sell"],title:`Слишком большая доля: ${big.map(o=>`${esc(o.p.name)} — ${pctN(o.gw*100,0)}${o.gn>1?" на всех счетах":""}`).join(", ")}`,
+    text:"Одна бумага занимает больше 15% портфеля: если с ней что-то случится, это сильно ударит по всему капиталу. Направляйте пополнения в другие бумаги — доля снизится сама."});
+  const mat=P.list.filter(o=>o.cls==="bond"&&o.info&&o.info.mat>Date.now()&&o.info.mat-Date.now()<120*864e5), back=mat.reduce((v,o)=>v+(o.bond&&o.bond.back||0),0);
+  if(mat.length) out.push({pri:600,tag:["скоро","hold"],title:`Скоро погашение: ${mat.map(o=>esc(o.p.name)).join(", ")}`,
+    text:`До ${dmy(Math.max(...mat.map(o=>o.info.mat)))} вернётся ${back?"около "+rub(back):"номинал этих облигаций"}. Решите заранее, куда вложить эти деньги, чтобы они не лежали без дохода.`});
+  const bV=P.list.filter(o=>o.cls==="bond").reduce((v,o)=>v+o.cv,0), hr=P.list.filter(o=>o.info&&o.info.risk===3), hrV=hr.reduce((v,o)=>v+o.cv,0), fl=P.list.filter(o=>o.info&&o.info.float), flV=fl.reduce((v,o)=>v+o.cv,0);
+  if(bV>0&&hrV/bV>0.1) out.push({pri:500,tag:["риск","sell"],title:`Облигации с высоким риском — ${pctN(hrV/bV*100,0)} облигаций`,
+    text:`${hr.map(o=>esc(o.p.name)).join(", ")}: высокий риск по оценке Т-Банка. Таких лучше держать не больше 10% облигаций; новые деньги — в ОФЗ и выпуски с низким риском.`});
+  if(bV>0&&flV/bV>0.3) out.push({pri:450,tag:["ставка","hold"],title:`Плавающие купоны — ${pctN(flV/bV*100,0)} облигаций`,
+    text:"Когда ЦБ снижает ставку, доход по ним падает. Если ставка будет снижаться, новые деньги выгоднее вкладывать в ОФЗ с постоянным купоном: их цена при этом растёт."});
+  const gaps=Object.keys(BLOCKS).filter(b=>al.buy[b]>=1000).sort((a,b)=>al.buy[b]-al.buy[a]);
+  const lc1=t=>/^[А-ЯЁA-Z][а-яёa-z]/.test(t)?t[0].toLowerCase()+t.slice(1):t;
+  if(al.pool>0&&gaps.length) out.push({pri:400,tag:["этот месяц","buy"],title:`Куда вложить ${rub(al.pool)}: ${gaps.slice(0,2).map(b=>`${lc1(BLOCKS[b])} — ${rub(al.buy[b])}`).join(", ")}${gaps.length>2?" и другое":""}`,
+    text:`Это пополнение ${rub(al.C)}${al.spare>0?` и свободные деньги сверх подушки — ${rub(al.spare)}`:""}. Так портфель приблизится к целевой структуре из вкладки «Штанга»; вся раскладка — в таблице ниже.`});
+  if(!tinv.token) out.push({pri:300,tag:["данные","hold"],title:"Подключите Т-Инвестиции",
+    text:"Без них советы строятся только по вашим цифрам: нет доходности облигаций, показателей компаний и прогнозов аналитиков. Подключение — во вкладке «Подключения», нужен токен только для чтения."});
+  return out.sort((a,b)=>b.pri-a.pri).slice(0,7);
+}
+function advice(){
+  const P=paperFacts(), s=state.settings, key=num(s.keyRate)||0, rate=num(s.taxRate)/100, al=adviceAlloc(P);
+  const mm=P.list.filter(o=>o.cls==="fund"&&o.ft==="mm").reduce((v,o)=>v+o.w,0), x={key,under:al.under,mm};
+  const top=adviceTop(P,x,al), rows=[...P.list].sort((a,b)=>b.cv-a.cv).map(o=>({o,a:adviseOne(o,x),t:taxLine(o,rate)}));
+  const base=Math.max(1,al.base), shown=Object.keys(BLOCKS).filter(b=>b!=="other"||al.fact.other>0);
+  const counts={}; for(const r of rows) counts[r.a.act]=(counts[r.a.act]||0)+1;
+  const pr=tinv.token?anProgress():null;
+  return `<div class="panel"><h2>Главное сейчас <span class="sub">${top.length?"по убыванию важности":"всё в порядке"}</span></h2>
+    ${pr&&pr.all&&pr.done<pr.all?`<div class="banner" style="margin-bottom:10px">Догружаю показатели из Т-Инвестиций: готово ${pr.done} из ${pr.all} ${nPapers(pr.all)}. Советы по бумагам уточнятся через минуту-другую.</div>`:""}
+    ${top.length?`<div class="todo">${top.map(t=>`<div><span class="pill ${t.tag[1]}">${t.tag[0]}</span><div><b>${t.title}</b><p class="muted">${t.text}</p></div></div>`).join("")}</div>`:`<div class="empty">Срочных дел нет: свободных денег мало, перекосов и бумаг с проблемами не видно.</div>`}
+    <div class="toolbar" style="margin-top:6px">
+      <label class="f">Ключевая ставка ЦБ, %<input id="a-key" type="number" step="0.25" value="${num(s.keyRate)}" style="width:100px"></label>
+      <span class="hint" style="padding-top:16px;max-width:60ch">Сверяйте её с сайтом Банка России: от ставки зависят советы по облигациям и фондам денежного рынка.</span>
+    </div>
+  </div>
+  <div class="panel"><h2>Куда вложить деньги <span class="sub">${al.spare>0?`${rub(al.pool)}: пополнение ${rub(al.C)} и свободные деньги сверх подушки ${rub(al.spare)}`:`пополнение ${rub(al.C)}`} — чтобы приблизиться к целевой структуре из «Штанги»</span></h2>
+    <div class="toolbar" style="margin:0 0 10px">
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="a-usecash" ${al.useCash?"checked":""}>вложить и свободные деньги сверх подушки</label>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="a-noreit" ${al.noReit?"checked":""}>не покупать новые ЗПИФ</label>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Блок</th><th class="num">Сейчас</th><th class="num">Цель</th><th class="num">Вложить</th><th>Чем</th></tr></thead><tbody>
+    ${shown.map(b=>{const f=al.fact[b]/base*100, g=num((s.target||{})[b]), skip=b==="reit"&&al.noReit;
+      return `<tr><td>${BLOCKS[b]}</td><td class="num">${pctN(f,f<10?1:0)}<br><small class="muted">${rub(al.fact[b])}</small></td><td class="num">${g}%</td>
+      <td class="num">${skip?`<span class="muted">не покупаем</span>`:al.buy[b]>=1000?`<b>${rub(al.buy[b])}</b>`:DASH}</td><td style="min-width:240px" class="muted">${skip?"по стратегии новые ЗПИФ не покупаем: доля блока будет снижаться сама":BLOCK_HOW[b]}</td></tr>`}).join("")}
+    </tbody><tfoot><tr><td>Итого</td><td class="num">100%<br><small class="muted">${rub(al.base)}</small></td><td class="num">${shown.reduce((v,b)=>v+num((s.target||{})[b]),0)}%</td><td class="num">${rub(shown.reduce((v,b)=>v+(b==="reit"&&al.noReit?0:al.buy[b]),0))}</td><td></td></tr></tfoot></table></div>
+    <p class="note">Пополнение — из блока «Пополнение в месяц» на «Обзоре», цели — из вкладки «Штанга». Подушка — цель блока «LQDT / кэш» (${rub(al.cushion)}): свободные деньги сверх неё вкладываются вместе с пополнением. Деньги идут в блоки, которых не хватает больше всего${al.noReit?"; ЗПИФ пропускаются, их доля распределена на остальные блоки":""}. «Сейчас» — от ${mln(al.base)} в разнесённых бумагах и свободных деньгах${al.none>=1000?`; ещё ${mln(al.none)} лежат в счетах без разбивки по бумагам и сюда не входят`:""}.</p>
+  </div>
+  <div class="panel"><h2>Разбор по каждой бумаге <span class="sub">${["buy","hold","keep","nobuy","cut","swap"].filter(a=>counts[a]).map(a=>`${ACT[a][0].toLowerCase()} — ${counts[a]}`).join(" · ")}</span></h2>
+    ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Бумага</th><th class="num">Стоит</th><th class="num">Доля</th><th>Показатели</th><th>Совет</th><th>Почему</th><th></th></tr></thead><tbody>
+    ${rows.map(({o,a,t})=>{const v=ACT[a.act][2], same=o.p.verdict===v, can=!same&&(!!o.info||a.act!=="hold");
+      return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td><td style="min-width:150px"><small>${shortMetrics(o)}</small></td>
+      <td><span class="pill ${ACT[a.act][1]}">${ACT[a.act][0]}</span></td>
+      <td style="min-width:260px">${a.why?a.why[0].toUpperCase()+a.why.slice(1)+".":""}${a.alt?`<br><span class="muted">${a.act==="cut"||a.act==="swap"?"Вместо":"Дальше"}: ${a.alt}.</span>`:""}${t?`<br><span class="pill watch" style="margin-top:4px">налоговая чистка</span> <small>убыток ${rub(t.loss)}: ${a.act==="swap"||a.act==="cut"?"продажа до 31 декабря уменьшит налог":"продать и откупить до 31 декабря — налог"} до −${rub(t.save)}</small>`:""}</td>
+      <td>${same?`<span class="muted" title="Такое решение уже стоит во вкладке «Бумаги»">✓</span>`:!can?"":`<button class="btn" data-adv="${esc(o.p.id)}" data-v="${v}" title="Поставить решение «${VERDICT[v]}» во вкладке «Бумаги»" style="padding:4px 10px;font-size:12px">Принять</button>`}</td></tr>`}).join("")}
+    </tbody></table></div>`:`<div class="empty">Бумаг с текущей стоимостью пока нет.</div>`}
+    <p class="note">«Принять» ставит решение во вкладке «Бумаги»: «Продать» попадает в план налоговой чистки во вкладке «Налоги и задачи», «Решить» — когда стоит продать только часть.</p>
+    <details id="adv-rules" style="margin-top:8px"><summary class="muted">Как считаются советы</summary>
+      <ul class="note" style="padding-left:18px;margin:8px 0 0">
+        <li><b>Облигации.</b> Высокий риск по оценке Т-Банка и больше 2% портфеля — сократить. Погашение меньше чем через полгода — держать до погашения. Плавающий купон — держать, новые деньги в постоянный купон. Доходность к погашению ниже ключевой ставки больше чем на 3 п.п. — заменить. ОФЗ длиннее 5 лет, когда блока ОФЗ меньше цели — докупать.</li>
+        <li><b>Акции.</b> Больше 15% портфеля — сократить, больше 10% — не докупать. Аналитики советуют продавать — заменить. Убыток компании за 12 месяцев или долг больше 3,5 EBITDA — сократить. Аналитики советуют покупать с прогнозом от +15%, когда акций меньше цели — докупать. Позиции у других брокеров меньше 0,5% портфеля и 20 000 ₽ — заменить на фонд.</li>
+        <li><b>Фонды.</b> Денежный рынок больше 10% портфеля — сократить. ЗПИФ — держать, новые не покупать. Комиссия больше 1,2% в год — заменить. Фонды акций и облигаций — докупать, когда их блока меньше цели.</li>
+        <li><b>Налоговая чистка.</b> Убыток от 5 000 ₽ и от 5% вложенного, кроме ИИС и зарубежных счетов.</li>
+      </ul></details>
+    <p class="note">Это не индивидуальная инвестиционная рекомендация: советы считаются автоматически по простым правилам из данных портфеля и целевой структуры, данные о бумагах — из Т-Инвестиций. Решение о сделках принимаете вы.</p>
   </div>`;
 }
 
@@ -953,9 +1289,10 @@ const BLOCKS={ofz:"Длинные ОФЗ",div:"Дивидендные акции
 function guessBlock(p){
   if(p.block) return p.block; const t=String(p.ticker||"").toUpperCase(), n=String(p.name||"").toLowerCase();
   const acc=state.accounts.find(a=>a.id===p.account); if(acc&&acc.kind==="foreign") return "foreign";
-  if(/^SU\d|офз/.test(t+" "+n)) return "ofz"; if(/LQDT|ликвидн/.test(t+" "+n)) return "cash";
+  const i=p.tuid?loadAn().info[p.tuid]:null;
+  if(/^SU\d|офз/.test(t+" "+n)||(i&&i.type==="bond"&&i.sector==="government")) return "ofz"; if(/LQDT|ликвидн/.test(t+" "+n)) return "cash";
   if(p.kind==="bond") return "corp"; if(p.kind==="share") return "div";
-  if(p.kind==="fund"&&/зпиф|акцент|рентн|парус|недвиж/.test(n)) return "reit"; if(p.kind==="fund"&&/облиг|кредит|поток|bond/.test(n)) return "corp"; if(p.kind==="fund") return "div";
+  if(p.kind==="fund") return {mm:"cash",reit:"reit",bond:"corp",gold:"other"}[fundType(p,i)]||"div";
   return "other";
 }
 function structure(){
@@ -1025,6 +1362,10 @@ function tasksTab(){
 }
 function bindNew(){
   const sv=(id,key,isNum=true)=>{const el=document.getElementById(id);if(el)el.addEventListener("change",()=>{saveSettings({[key]:isNum?num(el.value):el.value});render()})};
+  sv("a-key","keyRate");
+  const nr=document.getElementById("a-noreit"); if(nr) nr.addEventListener("change",()=>{saveSettings({advNoReit:nr.checked});render()});
+  const uc=document.getElementById("a-usecash"); if(uc) uc.addEventListener("change",()=>{saveSettings({advUseCash:uc.checked});render()});
+  main.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>{patch("positions",b.dataset.adv,{verdict:b.dataset.v});toast(`Решение «${VERDICT[b.dataset.v]}» поставлено во вкладке «Бумаги»`)});
   sv("i-goal","goalIncome");sv("i-g","divGrowth");sv("i-c","contribution");sv("i-idx","indexation");sv("i-y","newYield");sv("i-re","reinvest",false);sv("t-rate","taxRate");
   main.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{saveSettings({horizon:+b.dataset.hz});render()});
   main.querySelectorAll("[data-qy]").forEach(b=>b.onclick=()=>{qualYear=+b.dataset.qy;render()});
@@ -1247,6 +1588,174 @@ function forecast(){
   const base=state.accounts.filter(isAuto).reduce((s,a)=>s+num(a.value)+num(a.cash),0);
   return {sum,known,live,pending,unknown,items,base,pct:base?sum/base*100:0};
 }
+// One value per day of the T-Bank accounts (the last refresh of that day): «с начала года» and «за 12 месяцев» are counted from it
+const dayKey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const MONTHS_IN=["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"];
+const fmtDay=d=>new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}).replace(/ г\.$/,"");
+function recordSnap(total,key){
+  const sn=tinv.snaps||(tinv.snaps={}); sn[dayKey(new Date())]=[Math.round(total),key];
+  const cut=dayKey(new Date(Date.now()-400*864e5)); for(const d of Object.keys(sn)) if(d<cut) delete sn[d];
+}
+function pickSnap(prefer,lo,hi){const sn=tinv.snaps||{}; let best=null,bd=Infinity;
+  for(const d of Object.keys(sn)){if(d<lo||d>hi)continue;const x=Math.abs(Date.parse(d)-Date.parse(prefer));if(x<bd){bd=x;best=d}} return best}
+// Return since a recorded day: deposits and withdrawals of the period are neither profit nor loss (Modified Dietz)
+function periodRet(day){
+  const b=(tinv.snaps||{})[day]; if(!b) return null;
+  const ok=(tinv.accs||[]).filter(d=>d.ok), done=tinv.flowsDone||{}, fl=tinv.flows||{};
+  if(!ok.length||ok.some(d=>!done[d.id])) return null;
+  const cur=ok.map(d=>d.id); if(String(b[1]||"").split(",").filter(Boolean).some(id=>!cur.includes(id))) return null; // an account of that day is gone
+  const V1=ok.reduce((s,d)=>s+d.total,0), t0=Date.parse(day)+864e5, t1=Date.now(), T=Math.max(864e5,t1-t0); let F=0,Wt=0;
+  for(const id of cur) for(const [d,amt] of Object.values(fl[id]||{})){const t=Date.parse(d); if(!amt||!(t>=t0)) continue; F+=amt; Wt+=amt*Math.max(0,t1-t)/T}
+  const den=b[0]+Wt; if(!(den>0)) return null;
+  return {day,pnl:V1-b[0]-F,r:(V1-b[0]-F)/den};
+}
+function periods(){
+  const days=Object.keys(tinv.snaps||{}).sort(); if(!days.length) return {first:null};
+  const now=new Date(), Y=now.getFullYear(), today=dayKey(now), ago=n=>dayKey(new Date(Date.now()-n*864e5));
+  const yd=pickSnap(`${Y-1}-12-31`,`${Y-1}-12-01`,`${Y}-01-31`), d12=pickSnap(ago(365),ago(396),ago(334));
+  return {first:days[0],ytd:yd&&yd<today?periodRet(yd):null,y12:d12?periodRet(d12):null};
+}
+
+// Instrument data for «Анализ бумаг» and «Рекомендации»: bond terms and coupons to maturity, company indicators, analysts' consensus.
+// Kept only in this browser; terms are refreshed weekly, indicators and consensus daily.
+const TINV_AN_KEY="kapital-tinvest-an", AN_TTL={info:7*864e5,fund:864e5,cons:864e5,cpn:3*864e5,err:2*3600*1000};
+let anMem=null;
+function loadAn(){if(anMem)return anMem;let o={};try{o=JSON.parse(localStorage.getItem(TINV_AN_KEY)||"{}")||{}}catch(e){}
+  for(const k of ["info","fund","cons","cpn","find"]) o[k]=o[k]||{}; return anMem=o}
+function saveAn(m){anMem=m;try{localStorage.setItem(TINV_AN_KEY,JSON.stringify(m))}catch(e){}}
+const anFresh=(o,ttl)=>!!o&&Date.now()-o.at<(o.err?AN_TTL.err:ttl);
+const tsOf=s=>{const t=Date.parse(s||"");return t>Date.UTC(1971,0,1)?t:null};
+const livePapers=()=>state.positions.filter(p=>p.tuid&&num(p.qty)>0&&isAuto(state.accounts.find(a=>a.id===p.account)));
+// Tickers of papers at other brokers (typed in by hand): the same instrument is looked up in T-Invest, so they get the same indicators
+// key of the lookup: ticker plus the kind of paper, so a share is never matched with a fund that has the same ticker (TECH and TECH@)
+const findKey=p=>normT(p.ticker)+"|"+({bond:"bond",share:"share",fund:"etf"}[clsOf(p)]||"");
+const manualTickers=()=>[...new Set(state.positions.filter(p=>num(p.value)>0&&!p.tuid&&p.ticker&&!isAuto(state.accounts.find(a=>a.id===p.account))).map(findKey))];
+function anTargets(inst){const an=loadAn(), ins=inst||loadInst(), types={}; let pending=0;
+  for(const p of livePapers()) types[p.tuid]=(ins[p.tuid]||{}).type||"";
+  for(const T of manualTickers()){const f=an.find[T]; if(!f) pending++; else if(f.uid&&!types[f.uid]) types[f.uid]=f.type}
+  return {types,pending}}
+async function tinvAnalyze(manual,inst){
+  const an=loadAn(), now=Date.now(), max=manual?120:60;
+  let calls=0, changed=false;
+  const set=(k,id,v)=>{an[k][id]=v;changed=true};
+  const get=async(m,body)=>{calls++;try{return await tcall("InstrumentsService/"+m,body)}catch(e){if(fatal(e)||(e&&e.status===429))throw e;return null}};
+  try{
+    // 0. papers of other brokers: find the instrument by its ticker (once a month; not found — once a week)
+    for(const K of manualTickers()){
+      const f=an.find[K], [T,ty]=K.split("|"); if(f&&now-f.at<(f.err?AN_TTL.err:f.uid?30*864e5:7*864e5)) continue; if(calls>=max) break;
+      const r=await get("FindInstrument",{query:T});
+      if(!r){set("find",K,{at:now,err:1});continue}
+      // only Moscow Exchange boards (TQBR, TQOB, TQCB, TQTF, TQIF…): the same ticker abroad is usually another company
+      const pick=(r.instruments||[]).find(i=>normT(i.ticker)===T&&(ty?i.instrumentType===ty:["share","bond","etf"].includes(i.instrumentType))&&i.uid&&/^TQ/.test(i.classCode||""));
+      set("find",K,pick?{at:now,uid:pick.uid,type:pick.instrumentType}:{at:now,none:1});
+    }
+    const tg=anTargets(inst), uids=Object.keys(tg.types);
+    // 1. terms of each paper: sector, maturity, coupon type, credit risk, fund fee
+    for(const uid of uids){
+      if(calls>=max) break; if(anFresh(an.info[uid],AN_TTL.info)) continue;
+      const ty=tg.types[uid]||"", m={bond:"BondBy",share:"ShareBy",etf:"EtfBy"}[ty];
+      if(!m){set("info",uid,{at:now,type:ty||"other"});continue}
+      const r=await get(m,{idType:"INSTRUMENT_ID_TYPE_UID",id:uid}), i=r&&r.instrument;
+      if(!i){set("info",uid,{at:now,type:ty,err:1});continue}
+      const o={at:now,type:ty,asset:i.assetUid||"",sector:String(i.sector||"").toLowerCase(),cur:String(i.currency||"rub").toLowerCase()};
+      if(ty==="bond"){const rl=String(i.riskLevel||"");
+        Object.assign(o,{mat:tsOf(i.maturityDate),nom:mv(i.nominal),cpy:Number(i.couponQuantityPerYear)||0,float:!!i.floatingCouponFlag,amort:!!i.amortizationFlag,perp:!!i.perpetualFlag,
+          risk:/HIGH/.test(rl)?3:/MODERATE/.test(rl)?2:/LOW/.test(rl)?1:0,offer:tsOf(i.callDate)})}
+      if(ty==="etf") Object.assign(o,{fee:mv(i.fixedCommission),focus:String(i.focusType||"").toLowerCase()});
+      if(ty==="share") o.pref=/PREFERRED/.test(String(i.shareType||""));
+      set("info",uid,o);
+    }
+    // 2. company indicators: up to 100 companies in one request
+    const assets=[...new Set(uids.map(u=>an.info[u]).filter(o=>o&&o.type==="share"&&o.asset).map(o=>o.asset))].filter(a=>!anFresh(an.fund[a],AN_TTL.fund));
+    for(let i=0;i<assets.length&&calls<max;i+=100){
+      const part=assets.slice(i,i+100), r=await get("GetAssetFundamentals",{assets:part}), got={};
+      for(const f of (r&&r.fundamentals)||[]) got[f.assetUid]=f;
+      for(const a of part){const f=got[a];
+        set("fund",a,f?{at:now,cur:String(f.currency||"").toLowerCase(),pe:f.peRatioTtm,pb:f.priceToBookTtm,roe:f.roe,nde:f.netDebtToEbitda,dy:f.dividendYieldDailyTtm,fdy:f.forwardAnnualDividendYield,
+          dy5:f.fiveYearsAverageDividendYield,payout:f.dividendPayoutRatioFy,hi:f.highPriceLast52Weeks,lo:f.lowPriceLast52Weeks,ni:f.netIncomeTtm}:{at:now,err:r?0:1,none:1})}
+    }
+    // 3. coupon schedule up to maturity: yield to maturity and rate sensitivity are counted from it
+    for(const uid of uids){
+      const o=an.info[uid]; if(!o||o.type!=="bond"||o.err) continue; if(calls>=max) break; if(anFresh(an.cpn[uid],AN_TTL.cpn)) continue;
+      const to=Math.min(o.mat&&o.mat>now?o.mat+864e5:now+10*365*864e5,now+40*365*864e5);
+      const r=await get("GetBondCoupons",{instrumentId:uid,from:new Date(now).toISOString(),to:new Date(to).toISOString()});
+      set("cpn",uid,r?{at:now,list:(r.events||[]).map(e=>[tsOf(e.couponDate),mv(e.payOneBond)]).filter(e=>e[0]).sort((a,b)=>a[0]-b[0]).slice(0,240)}:{at:now,err:1});
+    }
+    // 4. analysts' consensus for shares
+    for(const uid of uids){
+      const o=an.info[uid]; if(!o||o.type!=="share"||o.err) continue; if(calls>=max) break; if(anFresh(an.cons[uid],AN_TTL.cons)) continue;
+      const r=await get("GetForecastBy",{instrumentId:uid}), c=r&&r.consensus;
+      set("cons",uid,!r?{at:now,err:1}:c&&c.recommendation?{at:now,rec:String(c.recommendation).replace("RECOMMENDATION_","").toLowerCase(),target:mv(c.consensus),rel:mv(c.priceChangeRel),
+        min:mv(c.minTarget),max:mv(c.maxTarget),n:(r.targets||[]).length}:{at:now,none:1});
+    }
+  }catch(e){if(fatal(e))throw e /* too many requests: the rest waits for the next refresh */}
+  finally{if(changed){saveAn(an);tinv.anRev=(tinv.anRev||0)+1}}
+}
+// How much of the instrument data has arrived (shown while it loads)
+function anProgress(){const an=loadAn(), tg=anTargets(), u=Object.keys(tg.types);
+  const done=u.filter(id=>{const o=an.info[id]; if(!o) return false; if(o.err||!["bond","share"].includes(o.type)) return true;
+    return o.type==="bond"?!!an.cpn[id]:!!an.cons[id]&&(!o.asset||!!an.fund[o.asset])}).length;
+  return {done,all:u.length+tg.pending}}
+// Bond: current yield, yield to maturity (effective, a year), Macaulay duration — from the coupon schedule and the price now
+function bondCalc(p,info,cp){
+  const q=num(p.qty), now=Date.now(), Y=365.25*864e5; if(!(q>0)||!(num(p.value)>0)) return null;
+  const fx=info.cur==="rub"?1:num(p.fx)>0&&num(p.fx)!==1?num(p.fx):0;
+  const dirty=num(p.value)/q, clean=(num(p.value)-num(p.nkd))/q, nom=num(info.nom)*fx, years=info.mat?(info.mat-now)/Y:null;
+  const ev=((cp&&cp.list)||[]).filter(e=>e[0]>now-864e5&&(!info.mat||e[0]<=info.mat+864e5)), known=ev.filter(e=>e[1]>0);
+  // a coupon without an amount yet is taken equal to the previous known one
+  let prev=known.length?known[0][1]:0, unk=0;
+  const cf=ev.map(([t,v])=>{if(v>0)prev=v;else unk++;return [Math.max(0,(t-now)/Y),(v>0?v:prev)*fx]});
+  const c12=cf.filter(e=>e[0]<=1).reduce((s,e)=>s+e[1],0);
+  const out={years,clean,nom,unk,curY:clean>0&&c12>0?c12/clean*100:null,c12:c12*q,ytm:null,dur:null,mod:null,back:nom>0?nom*q:0};
+  if(fx&&years>0.02&&!info.float&&!info.amort&&!info.perp&&nom>0&&dirty>0&&cp&&!cp.err){
+    const f=cf.concat([[years,nom]]), npv=r=>f.reduce((s,[t,a])=>s+a/Math.pow(1+r,t),0)-dirty;
+    let lo=-0.5,hi=3,flo=npv(lo);
+    if(flo*npv(hi)<0){for(let i=0;i<90;i++){const m=(lo+hi)/2,fm=npv(m);if(flo*fm<=0)hi=m;else{lo=m;flo=fm}}
+      const y=(lo+hi)/2; let P=0,T=0; for(const [t,a] of f){const v=a/Math.pow(1+y,t);P+=v;T+=t*v}
+      out.ytm=y*100; out.dur=P>0?T/P:null; out.mod=out.dur!=null?out.dur/(1+y):null}
+  }
+  return out;
+}
+const SECTOR={financial:"Финансы",energy:"Нефть, газ и энергетика",utilities:"Электроэнергетика",green_energy:"Электроэнергетика",materials:"Металлы и сырьё",it:"IT",telecom:"Связь",
+  consumer:"Потребительский сектор",health_care:"Медицина",industrials:"Промышленность",electrocars:"Промышленность",real_estate:"Недвижимость",green_buildings:"Недвижимость",
+  government:"Государство (ОФЗ)",municipal:"Регионы и города",ecomaterials:"Прочее",other:"Прочее"};
+const FOCUS={equity:"Фонды акций",fixed_income:"Фонды облигаций",mixed:"Смешанные фонды",money_market:"Фонды денежного рынка",real_estate:"Фонды недвижимости",
+  commodity:"Товарные фонды (золото и др.)",specialty:"Специальные фонды",private_equity:"Фонды прямых инвестиций",alternative_investment:"Альтернативные фонды"};
+// What kind of fund it is: by the broker's focus type, otherwise by name and ticker
+function fundType(p,info){const f=(info&&info.focus)||"", s=(String(p.ticker)+" "+String(p.name)).toLowerCase();
+  if(f==="money_market"||/lqdt|tmon|akmm|sbmm|ликвидн|денежн/.test(s)) return "mm";
+  if(f==="real_estate"||/зпиф|недвиж|рентн|парус|акцент/.test(s)) return "reit";
+  if(f==="fixed_income"||/облиг|bond|кредит|поток/.test(s)) return "bond";
+  if(f==="commodity"||/золот|gold/.test(s)) return "gold";
+  if(/tmos|eqmx|sbmx|индекс|крупнейш|мосбирж|imoex/.test(s)) return "index";
+  return f==="equity"||/акци|дивиденд/.test(s)?"equity":"other"}
+const isOFZ=(p,info)=>(info&&info.sector==="government")||/^SU\d/.test(String(p.ticker||"").toUpperCase())||/офз/i.test(String(p.name||""));
+// Everything known about each paper in the portfolio: share, result, payouts, bond terms and yields, company indicators, analysts' view
+function paperFacts(){
+  const d=pfData(), an=loadAn(), F=forecast(), W=Math.max(1,d.whole);
+  const list=d.held.map(p=>{
+    const acc=state.accounts.find(a=>a.id===p.account)||{}, auto=isAuto(acc)&&!!p.tuid, f0=!auto&&p.ticker?an.find[findKey(p)]:null;
+    const uid=auto?p.tuid:(f0&&f0.uid)||null, i0=uid?an.info[uid]:null, info=i0&&!i0.err?i0:null;
+    const look=info?"ok":!tinv.token?"notoken":auto?(i0&&i0.err?"err":"wait"):!p.ticker?"noticker":!f0?"wait":f0.none?"none":f0.err?"err":i0&&i0.err?"err":"wait";
+    const o={p,acc,auto,uid,info,look,cv:p.cv,w:p.cv/W,cls:clsOf(p),fund:info&&info.asset?an.fund[info.asset]||null:null,cons:uid?an.cons[uid]||null:null,cost:num(p.cost),fc:F.items[p.id]||null};
+    o.pnl=o.cost>0?num(p.value)-num(p.nkd)-o.cost:null; o.pnlPct=o.pnl!=null?o.pnl/o.cost*100:null;
+    o.pay12=auto?state.payouts.filter(x=>x.src==="tinvest"&&x.tuid===p.tuid&&x.tacc===acc.tid&&inLast12(x.month)).reduce((s,x)=>s+num(x.amount),0)
+      :state.payouts.filter(x=>!x.src&&inLast12(x.month)&&nameLike(x.name,p.name)).reduce((s,x)=>s+num(x.amount),0);
+    o.payY=o.cv>0&&o.pay12>0?o.pay12/o.cv*100:null;
+    if(o.cls==="bond"&&info&&auto) o.bond=bondCalc(p,info,an.cpn[uid]);
+    if(o.cls==="fund") o.ft=fundType(p,info);
+    o.ofz=o.cls==="bond"&&isOFZ(p,info);
+    o.sector=o.cls==="fund"?(FOCUS[(info&&info.focus)||""]||{mm:"Фонды денежного рынка",reit:"Фонды недвижимости",bond:"Фонды облигаций",gold:"Товарные фонды (золото и др.)",index:"Фонды акций",equity:"Фонды акций"}[o.ft]||"Фонды: тип не известен")
+      :o.ofz?"Государство (ОФЗ)":info&&info.sector?(SECTOR[info.sector]||"Прочее"):"Отрасль не известна";
+    return o});
+  for(const o of list) if(!o.auto&&o.cls==="bond"&&o.info){const tw=list.find(x=>x.auto&&x.uid===o.uid&&num(x.p.qty)>0&&num(x.p.value)>0);
+    if(tw){const q=num(o.p.value)/(num(tw.p.value)/num(tw.p.qty)); o.bond=bondCalc({...o.p,qty:q,nkd:num(tw.p.nkd)/num(tw.p.qty)*q,fx:tw.p.fx},o.info,an.cpn[o.uid])}}
+  // the same company in several accounts counts as one position for the concentration rules
+  const gw={}, gn={};
+  for(const o of list){o.gk=o.p.ticker?normT(o.p.ticker):o.uid||o.p.id; gw[o.gk]=(gw[o.gk]||0)+o.w; gn[o.gk]=(gn[o.gk]||0)+1}
+  for(const o of list){o.gw=gw[o.gk]; o.gn=gn[o.gk]}
+  return {d,W,F,an,list};
+}
 // All-time result like renta.life: value now minus deposits plus withdrawals, and the money-weighted return (XIRR)
 function xirr(cf){
   if(!cf.some(c=>c[1]<0)||!cf.some(c=>c[1]>0)) return null;
@@ -1275,7 +1784,7 @@ const pctS=v=>(v>0.05?"+":v<-0.05?"−":"")+Math.abs(v).toLocaleString("ru-RU",{
 const fatal=e=>e&&(e.kind==="auth"||e.kind==="blocked"||e.kind==="offline");
 const errShort=e=>String(tinvErrorText(e)).slice(0,160);
 function dataSig(){return JSON.stringify([state.accounts.map(a=>[a.id,a.value,a.cash]),state.positions.map(p=>[p.id,p.value,p.qty,p.cost]),state.payouts.length,state.demo,
-  Object.keys(tinv.flowsDone||{}).join(),Object.values(tinv.flows||{}).reduce((n,f)=>n+Object.keys(f).length,0),tinv.fcRev||0])}
+  Object.keys(tinv.flowsDone||{}).join(),Object.values(tinv.flows||{}).reduce((n,f)=>n+Object.keys(f).length,0),tinv.fcRev||0,tinv.anRev||0])}
 async function tinvSync(manual){
   if(!tinv.token) return;
   if(tinvBusy){if(manual)toast("Уже обновляю…");return}
@@ -1301,12 +1810,14 @@ async function tinvSync(manual){
       if(doOps){try{sum.payouts+=await tinvOps(a,inst,manual)}catch(e){if(fatal(e))throw e;d.opsError=errShort(e)}}
     }
     if(doOps&&sum.accounts){try{await tinvForecast(manual,inst)}catch(e){if(fatal(e))throw e}}
+    if(sum.accounts&&(doOps||tab==="analysis"||tab==="advice")){try{await tinvAnalyze(manual,inst)}catch(e){if(fatal(e))throw e}}
     saveInst(inst); if(!db) saveLocal();
     tinv.accs=diag; tinv.lastSum=sum;
     if(!sum.accounts) throw firstErr||{kind:"noacc"};
     const key=keys.join(",");
     tinv.lastDelta=tinv.totalKey===key&&tinv.lastTotal!=null?Math.round(total-tinv.lastTotal):null;
     tinv.prevAt=tinv.last||null; tinv.lastTotal=total; tinv.totalKey=key;
+    if(!sum.failed) recordSnap(total,key);
     tinv.last=Date.now(); tinv.lastError=null;
     if(doOps){tinv.lastOps=Date.now();tinv.opsVer=TINV_OPS_VER}
     saveTinv();
