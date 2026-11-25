@@ -39,7 +39,15 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .hstat{display:flex;flex-direction:column;align-items:flex-end}
 .hstat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .hstat b{font-size:18px;font-weight:600}
-nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;overscroll-behavior-x:contain}
+nav::-webkit-scrollbar{display:none}
+/* A mouse can't swipe a row, so on computers the strip wraps onto a second line and every tab stays in view */
+@media (hover:hover) and (pointer:fine){nav{flex-wrap:wrap;row-gap:2px;overflow-x:visible}}
+/* On touch screens it stays one row you swipe; an edge fades while more tabs lie past it */
+nav.more-r{--fade:linear-gradient(90deg,#000 calc(100% - 44px),transparent)}
+nav.more-l{--fade:linear-gradient(90deg,transparent,#000 44px)}
+nav.more-l.more-r{--fade:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+nav.more-l,nav.more-r{-webkit-mask-image:var(--fade);mask-image:var(--fade)}
 nav button{border:0;background:transparent;color:var(--muted);font:500 14px var(--body);padding:8px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
 nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -382,7 +390,7 @@ function render(){
   // part-to-whole bar: drop a share label that does not fit its block
   main.querySelectorAll(".segbar span").forEach(x=>{if(x.scrollWidth>x.clientWidth+1)x.textContent=""});
 }
-function setTab(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
+function setTab(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t)); tabIntoView(true);
   try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0});
   if((t==="analysis"||t==="advice")&&tinvAutoOK()&&!tinvBusy&&Date.now()-(tinv.tried||0)>15000){const pr=anProgress();if(pr.done<pr.all)tinvSync(false)}}
 
@@ -1432,7 +1440,7 @@ function expenses(){
     <button class="btn" type="button" data-xload>Обновить из файла</button></div>
     ${C.endM<xDay(new Date()).slice(0,7)?`<p class="note" style="margin-top:6px">Последняя запись — ${xRu(C.end)}. Загрузите свежую выгрузку из Monefy: новые траты разметятся по прошлым.</p>`:""}</section>`;
   const kpis=`<section class="grid kpis">
-    <div class="panel kpi"><small>Траты в месяц</small><div class="v">${rub(C.avg)}</div><div class="n">в среднем за 12 мес: ${xRu(C.start)} — ${xRu(C.end)}</div></div>
+    <div class="panel kpi"><small>Траты в месяц</small><div class="v">${rub(C.avg)}</div><div class="n">в среднем за 12 мес: ${xRu(C.start)} — ${xRu(C.end)}${B.has?` · по бюджету ${rub(B.plan)}`:""}</div></div>
     ${C.kinds.length?`<div class="panel kpi"><small>Повседневное</small><div class="v">${rub(C.daily)}</div><div class="n">в месяц: обязательные и образ жизни · крупное и редкое ещё ${rub(C.avg-C.daily)}</div></div>`
       :`<div class="panel kpi"><small>Больше всего</small><div class="v">${rub(C.groups[0].t/12)}</div><div class="n">${esc(C.groups[0].g)}, в месяц</div></div>`}
     ${C.rated?`<div class="panel kpi"><small>Можно было не тратить</small><div class="v">${rub(C.avoid)}</div><div class="n">за 12 мес · ещё ${rub(C.cut)} можно сократить</div></div>`:""}
@@ -2828,6 +2836,18 @@ document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.cl
 document.getElementById("h-sync").onclick=()=>setTab("connect");
 main.addEventListener("click",e=>{const b=e.target.closest("[data-goto]");if(b){e.preventDefault();setTab(b.dataset.goto)}});
 try{const t=localStorage.getItem("kapital-tab");if(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
+// On a phone the strip is one row you swipe: keep the open tab in view and fade the edge that has more tabs past it
+function tabsEdges(){const n=document.getElementById("tabs"),max=n.scrollWidth-n.clientWidth;
+  n.classList.toggle("more-l",max>2&&n.scrollLeft>2); n.classList.toggle("more-r",max>2&&n.scrollLeft<max-2)}
+function tabIntoView(smooth){const n=document.getElementById("tabs"),b=n.querySelector('[aria-selected="true"]');
+  if(b&&n.scrollWidth>n.clientWidth){const nr=n.getBoundingClientRect(),br=b.getBoundingClientRect(),
+    still=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    n.scrollTo({left:Math.max(0,n.scrollLeft+br.left-nr.left-(nr.width-br.width)/2),behavior:smooth&&!still?"smooth":"auto"})}
+  tabsEdges()}
+document.getElementById("tabs").addEventListener("scroll",tabsEdges,{passive:true});
+addEventListener("resize",tabsEdges);
+tabIntoView(false);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>tabIntoView(false));
 
 // header tools (static, wired once)
 document.getElementById("btn-port").onclick=()=>document.getElementById("f-port").click();
