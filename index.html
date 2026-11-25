@@ -176,6 +176,39 @@ main a{color:var(--accent)}
 @media (max-width:560px){.todo>div{grid-template-columns:minmax(0,1fr)}}
 .rng{position:relative;display:inline-block;width:56px;height:4px;background:var(--line);border-radius:99px;vertical-align:middle;margin-right:7px}
 .rng i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-left:-5px;box-shadow:0 0 0 2px var(--surface)}
+/* expenses */
+.xg{border-bottom:1px solid var(--line)}
+.xg:last-child{border-bottom:0}
+.xg>summary{list-style:none;display:grid;grid-template-columns:minmax(120px,250px) minmax(0,1fr) 96px 44px;gap:4px 12px;align-items:center;padding:6px 4px;font-size:13px;border-radius:6px;cursor:pointer}
+.xg>summary::-webkit-details-marker{display:none}
+.xg>summary:hover{background:var(--surface2)}
+.xg>summary .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xg>summary .nm::before{content:"›";display:inline-block;width:12px;margin-right:4px;text-align:center;color:var(--faint)}
+.xg[open]>summary .nm::before{transform:rotate(90deg)}
+.xg>summary b{text-align:right;font-weight:600}
+.xg>summary>.muted{text-align:right}
+.gb{display:block;height:10px}
+.gb i{display:block;height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.xg .tablewrap{margin:2px 0 12px}
+@media (max-width:560px){.xg>summary{grid-template-columns:minmax(0,1fr) auto 40px;row-gap:3px}.xg>summary .gb{grid-column:1/-1;grid-row:2;height:6px}}
+.bar i.over{background:var(--down)}
+.xm{display:grid;gap:9px}
+.xr{display:grid;grid-template-columns:minmax(0,1fr) auto 122px;gap:3px 10px;align-items:baseline;font-size:13px}
+.xr .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xr .tl{text-align:right;font-size:12px;white-space:nowrap}
+.xr .amt{white-space:nowrap}
+.xr .bar{grid-column:1/-1;height:5px}
+@media (max-width:560px){.xr{grid-template-columns:minmax(0,1fr) auto}.xr .tl{grid-column:1/-1;grid-row:3;text-align:left}}
+.xinv>div{gap:4px}
+.xinv b{font:500 22px var(--display);letter-spacing:-.02em}
+.legend i.ln{width:18px;height:0;border-top:2px dashed var(--ink);border-radius:0;background:none;vertical-align:3px;opacity:.75}
+tr.xsec td{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);padding-top:14px}
+.xbt td input{min-width:96px;text-align:right}
+input.xmoney{text-align:right}
+#x-how>summary{list-style:none}
+#x-how>summary::-webkit-details-marker{display:none}
+#x-how>summary::after{content:" ›";color:var(--faint)}
+#x-how[open]>summary::after{content:" ⌄"}
 </style>
 
 <header>
@@ -193,6 +226,7 @@ main a{color:var(--accent)}
       </div>
       <input type="file" id="f-port" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
       <input type="file" id="f-pay" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
+      <input type="file" id="f-exp" accept=".zip,.csv,.txt,.html,.htm,.json,.xlsx,.xls,.md" hidden>
     </div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
@@ -205,6 +239,7 @@ main a{color:var(--accent)}
       <button role="tab" data-tab="positions" aria-selected="false">Бумаги</button>
       <button role="tab" data-tab="structure" aria-selected="false">Штанга</button>
       <button role="tab" data-tab="payouts" aria-selected="false">Выплаты</button>
+      <button role="tab" data-tab="expenses" aria-selected="false">Расходы</button>
       <button role="tab" data-tab="budget" aria-selected="false">Бюджет</button>
       <button role="tab" data-tab="tasks" aria-selected="false">Налоги и задачи</button>
       <button role="tab" data-tab="connect" aria-selected="false">Подключения</button>
@@ -339,7 +374,7 @@ function render(){
     <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json. ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,portfolio,analysis,advice,income,plans,accounts,positions,structure,payouts,budget,tasks:tasksTab,connect};
+  const views={overview,portfolio,analysis,advice,income,plans,accounts,positions,structure,payouts,expenses,budget,tasks:tasksTab,connect};
   main.innerHTML=banner+(views[tab]||overview)();
   main.querySelectorAll("details[id]").forEach(d=>{if(dOpen.has(d.id))d.open=true});
   bind();
@@ -1125,10 +1160,452 @@ function budget(){
   <td><input data-f="note" value="${esc(m.note)}"></td><td><button class="btn ghost" data-del="months" data-id="${m.id}">✕</button></td></tr>`}).join("")}
   </tbody></table></div>`:`<div class="empty">Внесите первый месяц: сколько пришло и сколько ушло.</div>`}
   <form class="addform" id="monthform"><label class="f">Месяц<input id="m-id" type="month" value="${cur}" required></label>
-  <label class="f">Доход, ₽<input id="m-inc" type="number" step="1000" value="305000" style="width:120px"></label>
+  <label class="f">Доход, ₽<input id="m-inc" type="number" step="1000" value="${num(state.settings.salary)||""}" placeholder="200000" style="width:120px"></label>
   <label class="f">Расход, ₽<input id="m-exp" type="number" step="1000" style="width:120px" placeholder="90000"></label>
   <button class="btn primary" type="submit">${has?"Обновить месяц":"Добавить месяц"}</button></form>
   <p class="note">Средняя сумма «Отложено» за последние 6 месяцев подставляется в прогноз цели кнопкой на «Обзоре».</p></div>`;
+}
+
+// ----- Expenses («Расходы»): spending rows from Monefy or an earlier spending analysis, kept only in this browser -----
+// Thousands of rows live under their own localStorage key, packed with a dictionary, and go into «Экспорт» too.
+const EXP_LS="kapital-expenses-v1", EXP_SKIP="Не учитываем", EXP_SAMPLE=null;
+const EXP_KINDS=["Обязательные","Образ жизни","Крупные и редкие","Здоровье и семья"], EXP_DAILY=["Обязательные","Образ жизни"];
+const EXP_AVOID="Можно было не тратить", EXP_CUT="Можно сократить";
+const expColor=kk=>{const i=EXP_KINDS.indexOf(kk);return i>=0?`var(--s${i+1})`:"var(--s0)"};
+const xDay=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const xRu=s=>s?s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4):"";
+const xAdd=(ym,n)=>{let [y,m]=ym.split("-").map(Number);m+=n;y+=Math.floor((m-1)/12);m=((m-1)%12+12)%12+1;return y+"-"+String(m).padStart(2,"0")};
+const xMonth=ym=>{const [y,m]=ym.split("-").map(Number);return new Date(y,m-1,15).toLocaleDateString("ru-RU",{month:"long",year:"numeric"}).replace(/ г\.$/,"")};
+const xCap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const xId=s=>{let h=5381;for(const ch of String(s))h=(h*33+ch.charCodeAt(0))>>>0;return h.toString(36)};
+let EXP=null;
+function expLoad(){
+  if(EXP) return EXP;
+  EXP={rows:[],budget:[],src:null};
+  try{const p=JSON.parse(localStorage.getItem(EXP_LS)||"null");if(p)EXP=expUnpack(p)}catch(e){}
+  if(!EXP.rows.length&&EXP_SAMPLE) EXP=EXP_SAMPLE();
+  return EXP;
+}
+function expPack(x){
+  const dict=[],ix=new Map(),id=s=>{s=String(s??"");let i=ix.get(s);if(i==null){i=dict.length;dict.push(s);ix.set(s,i)}return i};
+  return {v:1,dict,rows:x.rows.map(r=>[r.d,r.a,id(r.c),id(r.g),id(r.k),id(r.i),id(r.v),r.n||""]),budget:x.budget,src:x.src};
+}
+function expUnpack(p){
+  if(!p||!Array.isArray(p.rows)||!Array.isArray(p.dict)) return {rows:[],budget:[],src:null};
+  const D=p.dict;
+  return {rows:p.rows.map(r=>({d:String(r[0]),m:String(r[0]).slice(0,7),a:+r[1]||0,c:D[r[2]]||"",g:D[r[3]]||"",k:D[r[4]]||"",i:D[r[5]]||"",v:D[r[6]]||"",n:r[7]||""})),
+    budget:Array.isArray(p.budget)?p.budget:[],src:p.src||null};
+}
+function expSave(){
+  try{localStorage.setItem(EXP_LS,JSON.stringify(expPack(EXP)));return true}
+  catch(e){toast("Браузер не дал сохранить траты: не хватило места. Они видны до перезагрузки страницы.");return false}
+}
+
+// --- reading files: a zip archive, the classified CSV, the saved spending dashboard (.html) or a raw Monefy CSV ---
+const EXPCOL={date:["date","дата"],cat:["monefy_category","category","категория"],group:["group","статья"],kind:["kind","тип"],item:["item","позиция"],
+  verdict:["verdict","оценка"],amount:["amount","сумма"],conv:["converted amount","сумма в основной валюте","конвертированная сумма"],
+  note:["note","description","описание","комментарий","заметка"]};
+function expDate(v){
+  if(typeof v==="number"&&v>20000&&v<80000) return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
+  const s=String(v??"").trim();let m;
+  if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+  if((m=s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/))) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  return "";
+}
+const expRecs=grid=>{const h=(grid[0]||[]).map(normH);return grid.slice(1).map(r=>{const o={};h.forEach((k2,i)=>{if(!(k2 in o))o[k2]=r[i]});return o})};
+const expBudgetRecs=list=>list.map(o=>{const m=num(o.budget_month??o.goal_month),y=num(o.fund_year),b=String(o.bucket||"").toLowerCase();
+  return {g:String(o.group||"").trim(),m,y,b:m>0?"m":y>0?"y":/фонд|год/.test(b)?"y":"m",how:String(o.how||"").trim()}}).filter(b=>b.g);
+const expPlanRecs=list=>{const m=new Map();for(const o of list){const g=String(o.group||"").trim();if(g)m.set(g,(m.get(g)||0)+num(o.amount))}return m};
+function expTxRows(objs,P){
+  const today=xDay(new Date());
+  for(const o of objs){
+    const d=expDate(o.date); if(!d) continue;
+    const g=String(o.group||"").trim(); let a=num(String(o.conv??"").trim()!==""?o.conv:o.amount);
+    if(g) a=Math.abs(a);                      // an analysed file: every row is a spend
+    else{ if(!(a<0)){P.income++;continue} a=-a; P.raw=true }   // Monefy: spends are negative, income positive
+    if(d>today){P.future++;continue}
+    if(!(a>0)) continue;
+    const c=String(o.cat||"").trim();
+    P.rows.push({d,m:d.slice(0,7),a:Math.round(a*100)/100,c,g,k:String(o.kind||"").trim(),i:String(o.item||"").trim()||c||g,v:String(o.verdict||"").trim(),n:String(o.note||"").trim()});
+  }
+}
+function expNewP(){return {rows:[],raw:false,budget:null,inc:null,plan:null,future:0,income:0,src:""}}
+function expFromJSON(j,P){
+  P=P||expNewP();
+  if(j&&j.expenses&&Array.isArray(j.expenses.rows)){const X=expUnpack(j.expenses);P.rows.push(...X.rows);if(X.budget.length)P.budget=X.budget;return P}
+  if(j&&Array.isArray(j.tx)) expTxRows(j.tx.map(r=>({...r,cat:r.monefy_category??r.category})),P);
+  const bl=j&&Array.isArray(j.budget)?j.budget:j&&Array.isArray(j.rows)&&j.rows.some(r=>"goal_month" in r||"fund_year" in r)?j.rows:null;
+  if(bl&&!P.budget) P.budget=expBudgetRecs(bl);
+  if(j&&Array.isArray(j.plan)&&!P.plan) P.plan=expPlanRecs(j.plan);
+  if(j&&Array.isArray(j.income)&&j.income[0]&&!P.inc){const o=j.income[0];P.inc={salary:num(o.salary_month),bmin:num(o.bonus_min),bmax:num(o.bonus_max)}}
+  return P;
+}
+function expFromFiles(files){
+  const P=expNewP(), names=Object.keys(files), only=names.find(n=>/transactions_classified\.csv$/i.test(n));
+  for(const n of names){
+    const v=files[n];
+    if(/\.json$/i.test(n)){try{expFromJSON(JSON.parse(v),P)}catch(e){}continue}
+    const grid=typeof v==="string"?parseCSV(v):v; if(!grid||!grid.length) continue;
+    const h=grid[0].map(normH);
+    if(h.includes("salary_month")){const o=expRecs(grid)[0]||{};if(!P.inc)P.inc={salary:num(o.salary_month),bmin:num(o.bonus_min),bmax:num(o.bonus_max)};continue}
+    if(h.includes("group")&&(h.includes("budget_month")||h.includes("goal_month")||h.includes("fund_year"))){if(!P.budget)P.budget=expBudgetRecs(expRecs(grid));continue}
+    if(h.includes("group")&&h.includes("line")&&h.includes("amount")&&!h.includes("date")){if(!P.plan)P.plan=expPlanRecs(expRecs(grid));continue}
+    if(only&&n!==only) continue;
+    expTxRows(gridToObjects(grid,EXPCOL).rows,P);
+  }
+  return P;
+}
+function expFromDashboard(html){
+  const i=html.indexOf("window.__DATA__");
+  if(i<0) throw new Error("В этой странице нет данных трат. Выберите архив (.zip), файл transactions_classified.csv или выгрузку из Monefy.");
+  const s=html.indexOf("{",i), e=html.indexOf("<\/script>",s);
+  return expFromJSON(JSON.parse(html.slice(s,e).trim().replace(/;$/,"")));
+}
+// A zip's data files (CSV, JSON), unpacked by the browser itself
+async function expUnzip(buf){
+  const u=new Uint8Array(buf), dv=new DataView(u.buffer,u.byteOffset,u.byteLength); let e=-1;
+  for(let i=u.length-22;i>=Math.max(0,u.length-65557);i--) if(dv.getUint32(i,true)===0x06054b50){e=i;break}
+  if(e<0) throw new Error("Не получилось открыть архив. Распакуйте его и выберите файл transactions_classified.csv.");
+  const cnt=dv.getUint16(e+10,true), out={}; let p=dv.getUint32(e+16,true);
+  for(let j=0;j<cnt&&dv.getUint32(p,true)===0x02014b50;j++){
+    const method=dv.getUint16(p+10,true), size=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), off=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u.subarray(p+46,p+46+nl)); p+=46+nl+xl+cl;
+    if(!/\.(csv|json|txt)$/i.test(name)||/(^|\/)(__macosx|\.)/i.test(name)) continue;
+    const s=off+30+dv.getUint16(off+26,true)+dv.getUint16(off+28,true), raw=u.subarray(s,s+size);
+    let data=null;
+    if(method===0) data=raw;
+    else if(method===8){
+      if(typeof DecompressionStream==="undefined") throw new Error("Этот браузер не умеет распаковывать архивы. Распакуйте его и выберите файл transactions_classified.csv.");
+      data=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    }
+    if(data) out[name]=new TextDecoder().decode(data);
+  }
+  return out;
+}
+// New Monefy rows get their group, kind, item and verdict from the rows already analysed: the same transaction,
+// then the same comment, then a telling word of the comment (first 5 letters, so word forms match), then the category.
+// Checked on held-out months of real data: the group is right for 94–100% of new rows, the verdict for 97%.
+const expWords=s=>String(s||"").toLowerCase().replace(/ё/g,"е").split(/[^a-zа-я0-9]+/).filter(w=>w.length>=3&&!/^\d+$/.test(w)).map(w=>w.slice(0,5));
+function expLearner(rows){
+  const exact=new Map(), byNote=new Map(), byWord=new Map(), byCat=new Map(), SEP="\u0001";
+  const vote=(m,key,cls)=>{let x=m.get(key);if(!x)m.set(key,x=new Map());const s=cls.join(SEP);x.set(s,(x.get(s)||0)+1)};
+  for(const r of rows){ if(!r.c||!r.g) continue; const cls=[r.g,r.k,r.i,r.v];
+    exact.set(r.d+"|"+r.a+"|"+r.c+"|"+r.n,cls); vote(byNote,r.c+"|"+r.n.toLowerCase(),cls);
+    for(const w of new Set(expWords(r.n))) vote(byWord,r.c+"|"+w,cls);
+    vote(byCat,r.c,[r.g,r.k,"",""]); vote(byCat,"*"+r.c,cls);}
+  const top=(m,key)=>{const x=m.get(key);if(!x)return null;let t=0,b="",bn=0;for(const [s,n] of x){t+=n;if(n>bn){bn=n;b=s}}return {cls:b.split(SEP),n:bn,share:bn/t}};
+  return r=>{
+    const e=exact.get(r.d+"|"+r.a+"|"+r.c+"|"+r.n); if(e) return {cls:e,how:"same"};
+    const a=top(byNote,r.c+"|"+r.n.toLowerCase()); if(a&&a.share>=0.6) return {cls:a.cls,how:"note"};
+    let best=null; for(const w of new Set(expWords(r.n))){const x=top(byWord,r.c+"|"+w); if(x&&x.n>=2&&x.share>=0.75&&(!best||x.n*x.share>best.n*best.share)) best=x}
+    if(best) return {cls:best.cls,how:"word"};
+    const ci=top(byCat,"*"+r.c); if(ci&&ci.share>=0.4) return {cls:ci.cls,how:"cat"};
+    const c=top(byCat,r.c); if(c) return {cls:[c.cls[0],c.cls[1],"Без разметки",""],how:"group"};
+    return {cls:[r.c||"Без статьи","",r.c||"Без статьи",""],how:"none"};
+  };
+}
+async function handleExpensesFile(file){
+  try{
+    const name=file.name.toLowerCase(); let P;
+    if(name.endsWith(".zip")) P=expFromFiles(await expUnzip(await file.arrayBuffer()));
+    else if(/\.html?$/.test(name)) P=expFromDashboard(await file.text());
+    else if(name.endsWith(".md")) throw new Error("В этом файле выводы, а самих трат нет. Выберите архив (.zip), файл transactions_classified.csv или выгрузку из Monefy.");
+    else if(name.endsWith(".json")) P=expFromJSON(JSON.parse(await file.text()));
+    else{const res=await fileToGrid(file); P=res.json?expFromJSON(res.json):expFromFiles({[file.name]:res.grid})}
+    P.src=file.name;
+    if(!P.rows.length&&!P.budget&&!P.inc) throw new Error("Не нашёл в файле трат: нужны колонки «date», «amount» и «category», как в выгрузке Monefy.");
+    expImportModal(P,file);
+  }catch(e){const m=e&&e.message||String(e);
+    toast(m==="xlsx"?"Не загрузилась библиотека для Excel — проверьте интернет или сохраните файл как CSV.":/^Unexpected|JSON|token/.test(m)?"Не удалось прочитать файл: он повреждён или это не таблица.":m)}
+}
+function expImportModal(P,file){
+  const X=expLoad(), s=state.settings;
+  let lo="",hi="";for(const r of P.rows){if(!lo||r.d<lo)lo=r.d;if(r.d>hi)hi=r.d}
+  // raw Monefy rows: classify them now so the window can say how many matched the earlier analysis
+  const how={same:0,note:0,word:0,cat:0,group:0,none:0};
+  const rows=P.raw?(()=>{const learn=expLearner(X.rows);return P.rows.map(r=>{if(r.g)return r;const q=learn(r);how[q.how]++;return {...r,g:q.cls[0],k:q.cls[1],i:q.cls[2],v:q.cls[3]}})})():P.rows;
+  const keep=X.rows.filter(r=>r.d<lo||r.d>hi).length, swap=X.rows.length-keep;
+  const nb=P.budget?P.budget.length:0, skip=rows.filter(r=>r.k===EXP_SKIP).length, labelled=rows.some(r=>r.k||r.v);
+  const last=rows.slice().sort((a,b)=>a.d<b.d?1:-1).slice(0,8);
+  const fresh=how.note+how.word+how.cat+how.group+how.none;
+  openModal(`<h2>Загрузка трат</h2>
+  <p class="muted">${esc(file.name)}: ${rows.length?`${nf.format(rows.length)} ${plural(rows.length,"трата","траты","трат")} с ${xRu(lo)} по ${xRu(hi)}${labelled?", со статьями, типами и оценками":""}`:"трат нет"}${P.future?` · ${P.future} запланированных на будущее пропущено`:""}${P.raw&&P.income?` · ${nf.format(P.income)} ${plural(P.income,"доход","дохода","доходов")} пропущено: доход берётся из полей ниже`:""}.</p>
+  ${P.raw&&rows.length?`<p style="font-size:13px;margin:0 0 10px">${how.same?`${nf.format(how.same)} уже были в разборе — разметка сохранится. `:""}${fresh?`Новых: ${nf.format(fresh)}${X.rows.length?` — по комментарию размечено ${nf.format(how.note+how.word)}, по категории Monefy — ${nf.format(how.cat)}${how.group+how.none?`, без оценки — ${nf.format(how.group+how.none)}`:""}`:" — разметки пока нет: статьи возьмутся из категорий Monefy"}.`:""}</p>`:""}
+  <div style="display:grid;gap:6px;margin:2px 0 12px;font-size:13px">
+    ${rows.length&&X.rows.length?`<div>Сейчас в браузере ${nf.format(X.rows.length)} ${plural(X.rows.length,"трата","траты","трат")}: ${swap?`${nf.format(swap)} за ${xRu(lo)} — ${xRu(hi)} заменятся файлом`:"файл добавится к ним"}${keep?`, ${nf.format(keep)} за другие даты останутся`:""}.</div>`:""}
+    ${skip?`<div>${nf.format(skip)} ${plural(skip,"трата","траты","трат")} с типом «${EXP_SKIP}» сохранятся, но в расчёты не войдут.</div>`:""}
+    ${nb?`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xi-bud" ${X.budget.length?"":"checked"}>взять бюджет из файла: ${nb} ${plural(nb,"статья","статьи","статей")}${X.budget.length?" (заменит текущий)":""}</label>`:""}
+    ${P.inc&&P.inc.salary?`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="xi-inc" ${num(s.salary)?"":"checked"}>взять доход из файла: зарплата ${rub(P.inc.salary)}${P.inc.bmax?`, премия ${P.inc.bmin&&P.inc.bmin!==P.inc.bmax?nf.format(P.inc.bmin)+"–":""}${rub(P.inc.bmax)} в год`:""}</label>`:""}
+  </div>
+  ${last.length?`<div class="tablewrap"><table><thead><tr><th>Дата</th><th>Статья</th><th>Комментарий</th><th class="num">Сумма</th></tr></thead><tbody>
+  ${last.map(r=>`<tr><td>${xRu(r.d)}</td><td>${esc(r.g)}</td><td class="muted">${esc(r.n)}</td><td class="num">${rub(r.a)}</td></tr>`).join("")}</tbody></table></div>`:""}
+  <p class="note">Файл читается здесь, в браузере. Траты сохраняются только в этом браузере и попадают в «Экспорт»; на сайт они не уходят.</p>
+  <div class="toolbar"><button class="btn primary" id="xi-ok">${rows.length?`Загрузить ${nf.format(rows.length)} ${plural(rows.length,"трату","траты","трат")}`:"Загрузить"}</button><button class="btn" id="xi-cancel">Отмена</button></div>`);
+  document.getElementById("xi-cancel").onclick=closeModal;
+  document.getElementById("xi-ok").onclick=()=>{
+    const ub=document.getElementById("xi-bud"), ui=document.getElementById("xi-inc");
+    if(rows.length){X.rows=X.rows.filter(r=>r.d<lo||r.d>hi).concat(rows).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0);
+      X.src={file:P.src||file.name,at:xDay(new Date()),n:rows.length,from:lo,to:hi}}
+    if(ub&&ub.checked){X.budget=P.budget.map(b=>({...b,...(P.plan&&P.plan.has(b.g)?{p:P.plan.get(b.g)}:{})}))}
+    const ok=expSave();
+    if(ui&&ui.checked) saveSettings({salary:P.inc.salary,bonus:P.inc.bmax?Math.round(((P.inc.bmin||P.inc.bmax)+P.inc.bmax)/2):0});
+    closeModal(); if(tab!=="expenses") setTab("expenses"); else render();
+    if(ok) toast(rows.length?`Загружено ${nf.format(rows.length)} ${plural(rows.length,"трата","траты","трат")}`:"Бюджет и доход обновлены");
+  };
+}
+
+// --- numbers behind the tab ---
+function expCalc(){
+  const X=expLoad(), all=X.rows; if(!all.length) return null;
+  let end="",first="";for(const r of all){if(r.d>end)end=r.d;if(!first||r.d<first)first=r.d}
+  const start=new Date(Date.parse(end+"T00:00:00Z")-364*864e5).toISOString().slice(0,10);
+  const mine=all.filter(r=>r.k!==EXP_SKIP), w=mine.filter(r=>r.d>=start);
+  const S=a=>a.reduce((x,r)=>x+r.a,0), total=S(w);
+  const kinds=EXP_KINDS.filter(kk=>w.some(r=>r.k===kk));
+  const G=new Map();
+  for(const r of w){let g=G.get(r.g);if(!g)G.set(r.g,g={g:r.g,t:0,n:0,kv:new Map(),it:new Map()});
+    g.t+=r.a;g.n++;g.kv.set(r.k,(g.kv.get(r.k)||0)+r.a);
+    let it=g.it.get(r.i);if(!it)g.it.set(r.i,it={i:r.i,v:r.v,n:0,t:0});it.n++;it.t+=r.a}
+  const groups=[...G.values()].map(g=>({g:g.g,t:g.t,n:g.n,k:[...g.kv].sort((a,b)=>b[1]-a[1])[0][0],items:[...g.it.values()].sort((a,b)=>b.t-a.t)})).sort((a,b)=>b.t-a.t);
+  const L=new Map();
+  for(const r of w){if(r.v!==EXP_AVOID&&r.v!==EXP_CUT)continue;const key=r.v+"|"+r.i;let x=L.get(key);if(!x)L.set(key,x={i:r.i,v:r.v,n:0,t:0,gs:new Set()});x.n++;x.t+=r.a;x.gs.add(r.g)}
+  const endM=end.slice(0,7), firstM=[(+end.slice(0,4)-1)+"-01",first.slice(0,7)].sort()[1];
+  const MM=new Map();for(let m=firstM;m<=endM;m=xAdd(m,1))MM.set(m,{m,t:0,p:{}});
+  for(const r of mine){const x=MM.get(r.m);if(!x)continue;x.t+=r.a;x.p[r.k]=(x.p[r.k]||0)+r.a}
+  const partial=+end.slice(8,10)<new Date(+end.slice(0,4),+end.slice(5,7),0).getDate();
+  const months=[...MM.values()]; if(partial&&months.length) months[months.length-1].partial=true;
+  const Y=new Map();for(const r of mine){const y=r.d.slice(0,4);let x=Y.get(y);if(!x)Y.set(y,x={y,t:0,ms:new Set()});x.t+=r.a;x.ms.add(r.m)}
+  const years=[...Y.values()].map(x=>({y:x.y,t:x.t,n:x.ms.size,avg:x.t/x.ms.size})).sort((a,b)=>a.y<b.y?-1:1);
+  const cm=new Map(), ytd=new Map(), yr=end.slice(0,4);
+  for(const r of mine){if(r.m===endM)cm.set(r.g,(cm.get(r.g)||0)+r.a);if(r.d.slice(0,4)===yr)ytd.set(r.g,(ytd.get(r.g)||0)+r.a)}
+  return {X,end,first,start,endM,partial,mine,w,total,avg:Math.round(total/12),kinds,other:w.some(r=>!EXP_KINDS.includes(r.k)),
+    daily:Math.round(S(w.filter(r=>EXP_DAILY.includes(r.k)))/12),rated:w.some(r=>r.v),avoid:S(w.filter(r=>r.v===EXP_AVOID)),cut:S(w.filter(r=>r.v===EXP_CUT)),
+    groups,leaks:[...L.values()].sort((a,b)=>b.t-a.t),months,years,cm,ytd,
+    big:w.filter(r=>r.k!=="Обязательные"&&r.a>=10000).sort((a,b)=>b.a-a.a).slice(0,12),
+    skip:all.filter(r=>r.k===EXP_SKIP&&r.d>=start)};
+}
+function expBudget(C){
+  const X=C.X, by=new Map(X.budget.map(b=>[b.g,b])), fact=new Map(C.groups.map(g=>[g.g,g]));
+  const names=[...new Set([...C.groups.map(g=>g.g),...X.budget.map(b=>b.g)])];
+  const rows=names.map(g=>{const b=by.get(g), f=fact.get(g), m=b?num(b.m):0, y=b?num(b.y):0;
+    return {g,k:f?f.k:"",fact:f?f.t/12:0,m,y,p:b&&b.p!=null?num(b.p):null,how:b&&b.how||"",in:!!b,b:m>0?"m":y>0?"y":b?b.b||"m":""}});
+  const M=rows.reduce((x,r)=>x+r.m,0), Y=rows.reduce((x,r)=>x+r.y,0);
+  return {rows,M,Y,plan:Math.round(M+Y/12),has:M+Y>0};
+}
+// last 6 full months against the 6 before them
+function expChanged(C){
+  const L=C.partial?xAdd(C.endM,-1):C.endM, aFrom=xAdd(L,-11), aTo=xAdd(L,-6), bFrom=xAdd(L,-5);
+  if(C.first.slice(0,7)>aFrom) return null;
+  const G=new Map();
+  for(const r of C.mine){if(r.m<aFrom||r.m>L)continue;let g=G.get(r.g);if(!g)G.set(r.g,g={g:r.g,a:0,b:0});if(r.m<=aTo)g.a+=r.a;else g.b+=r.a}
+  const rows=[...G.values()].map(g=>({g:g.g,a:g.a/6,b:g.b/6,d:(g.b-g.a)/6})).sort((x,y)=>y.d-x.d);
+  return {aFrom,aTo,bFrom,bTo:L,a:rows.reduce((x,r)=>x+r.a,0),b:rows.reduce((x,r)=>x+r.b,0),rows:rows.filter(r=>Math.abs(r.d)>=1500)};
+}
+// month that 40 mln is reached with this monthly contribution, by the rules of «Обзор»
+function expGoal(c){
+  const t=totals(); if(t.goalBase>=40e6) return {txt:"уже есть",m:0};
+  const m=project(t.goalBase,t.liquid,Math.max(0,c),num(state.settings.rate),[40e6]).hit[40e6];
+  return {txt:m==null?"дальше 20 лет":dateLabel(m),m};
+}
+
+// --- the tab ---
+const expPill=v=>v===EXP_AVOID?`<span class="pill sell">можно было не тратить</span>`:v===EXP_CUT?`<span class="pill watch">можно сократить</span>`:v?`<span class="pill hold">${esc(v.toLowerCase())}</span>`:`<span class="muted">—</span>`;
+function expMeter(name,spent,limit,sw){
+  const p=limit>0?spent/limit:spent>0?1.01:0;
+  const tail=spent>limit?`<span class="down">сверх ${rub(spent-limit)}</span>`:`<span class="muted">осталось ${rub(limit-spent)}</span>`;
+  return `<div class="xr"><span class="nm">${sw?`<i class="sw" style="background:${sw}"></i>`:""}${esc(name)}</span><span class="amt"><b>${rub(spent)}</b> <span class="muted">из ${rub(limit)}</span></span><span class="tl">${tail}</span>
+    <div class="bar" role="img" aria-label="${esc(name)}: ${Math.round(p*100)}% лимита"><i class="${p>1?"over":""}" style="width:${Math.min(100,p*100).toFixed(1)}%"></i></div></div>`;
+}
+function expEmpty(){
+  return `<section class="panel"><h2>Расходы</h2>
+  <p class="lead">Загрузите свои траты — вкладка покажет, куда уходят деньги, где можно было не тратить, как держится бюджет и сколько остаётся на инвестиции.</p>
+  <div class="toolbar"><button class="btn primary" type="button" data-xload>Выбрать файл с тратами</button></div>
+  <p class="note">Подойдёт архив разбора трат (.zip), файл transactions_classified.csv из него, сохранённая страница дашборда расходов (.html) или CSV-выгрузка из Monefy. Файл читается прямо в браузере и никуда не отправляется; траты хранятся только в этом браузере и попадают в «Экспорт».</p></section>`;
+}
+function expenses(){
+  const C=expCalc(); if(!C) return expEmpty();
+  if(!C.w.length) return expEmpty().replace("<h2>Расходы</h2>",`<h2>Расходы <span class="sub">за 12 мес до ${xRu(C.end)} нет трат, которые учитываются</span></h2>`);
+  const s=state.settings, B=expBudget(C), inc=Math.round(num(s.salary)+num(s.bonus)/12), X=C.X;
+  const left=inc-C.avg, leftB=inc-B.plan;
+  const top=`<section class="panel" style="padding:12px 18px"><div style="display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center">
+    <span style="margin-right:auto;font-size:13px"><b>${nf.format(X.rows.length)}</b> ${plural(X.rows.length,"трата","траты","трат")} с ${xRu(C.first)} по ${xRu(C.end)}${X.src?` <span class="muted">· ${esc(X.src.file)}, загружено ${xRu(X.src.at)}</span>`:""}</span>
+    <button class="btn" type="button" data-xload>Обновить из файла</button></div>
+    ${C.endM<xDay(new Date()).slice(0,7)?`<p class="note" style="margin-top:6px">Последняя запись — ${xRu(C.end)}. Загрузите свежую выгрузку из Monefy: новые траты разметятся по прошлым.</p>`:""}</section>`;
+  const kpis=`<section class="grid kpis">
+    <div class="panel kpi"><small>Траты в месяц</small><div class="v">${rub(C.avg)}</div><div class="n">в среднем за 12 мес: ${xRu(C.start)} — ${xRu(C.end)}</div></div>
+    ${C.kinds.length?`<div class="panel kpi"><small>Повседневное</small><div class="v">${rub(C.daily)}</div><div class="n">в месяц: обязательные и образ жизни · крупное и редкое ещё ${rub(C.avg-C.daily)}</div></div>`
+      :`<div class="panel kpi"><small>Больше всего</small><div class="v">${rub(C.groups[0].t/12)}</div><div class="n">${esc(C.groups[0].g)}, в месяц</div></div>`}
+    ${C.rated?`<div class="panel kpi"><small>Можно было не тратить</small><div class="v">${rub(C.avoid)}</div><div class="n">за 12 мес · ещё ${rub(C.cut)} можно сократить</div></div>`:""}
+    <div class="panel kpi"><small>Остаётся на инвестиции</small>${inc>0?`<div class="v ${left>=0?"up":"down"}">${rub(left)}</div><div class="n">в месяц, ${Math.round(left/inc*100)}% дохода${B.has?` · по бюджету ${rub(leftB)}`:""}</div>`
+      :`<div class="v">—</div><div class="n"><a href="#x-inv" data-xjump="x-inv">укажите доход</a> — посчитаю</div>`}</div>
+  </section>`;
+  return top+kpis+expNowPanel(C,B)+expGroupsPanel(C)+expMonthsPanel(C,B)+expLeaksPanel(C)+expInvestPanel(C,B,inc)+expBudgetPanel(C,B,inc)
+    +`<section class="grid two">${expChangedPanel(C)}${expYearsPanel(C,B)}</section>`+expBigPanel(C)+expHowPanel(C);
+}
+function expNowPanel(C,B){
+  const title=xCap(xMonth(C.endM)), cur=C.endM===xDay(new Date()).slice(0,7);
+  const spent=[...C.cm.values()].reduce((x,v)=>x+v,0);
+  if(!B.has) return `<section class="panel"><h2>${title} <span class="sub">${C.partial?"по "+xRu(C.end):"весь месяц"}</span></h2>
+    <p class="lead">Потрачено ${rub(spent)} — обычно ${rub(C.avg)} в месяц. Задайте лимиты в блоке «Бюджет» ниже — здесь появится, сколько осталось по каждой статье.</p></section>`;
+  const mR=B.rows.filter(r=>r.m>0).sort((a,b)=>b.m-a.m), yR=B.rows.filter(r=>r.y>0||(r.in&&r.b==="y"&&(C.ytd.get(r.g)||0)>0)).sort((a,b)=>b.y-a.y);
+  const mS=mR.reduce((x,r)=>x+(C.cm.get(r.g)||0),0), yS=yR.reduce((x,r)=>x+(C.ytd.get(r.g)||0),0), yL=yR.reduce((x,r)=>x+r.y,0);
+  const outside=B.rows.filter(r=>!mR.includes(r)&&!yR.includes(r)&&(C.cm.get(r.g)||0)>0);
+  const lastDay=new Date(+C.endM.slice(0,4),+C.endM.slice(5,7),0).getDate(), daysLeft=cur?lastDay-new Date().getDate()+1:0, rest=B.M-mS;
+  const col=r=>r.k?expColor(r.k):"";
+  const mCol=mR.length?`<div><p class="lead" style="font-size:14px;margin-bottom:10px"><b>Каждый месяц:</b> потрачено ${rub(mS)} из ${rub(B.M)} — ${rest>=0?`осталось <b>${rub(rest)}</b>${daysLeft>0?`, около ${rub(rest/daysLeft)} в день до конца месяца`:""}`:`<span class="down">сверх бюджета на ${rub(-rest)}</span>`}.</p>
+      <div class="xm">${mR.map(r=>expMeter(r.g,C.cm.get(r.g)||0,r.m,col(r))).join("")}</div></div>`:"";
+  const yCol=yR.length?`<div><p class="lead" style="font-size:14px;margin-bottom:10px"><b>Фонд на ${C.end.slice(0,4)} год:</b> с 1 января потрачено ${rub(yS)} из ${rub(yL)}${yS>yL?` — <span class="down">сверх на ${rub(yS-yL)}</span>`:` — осталось ${rub(yL-yS)}`}.</p>
+      <div class="xm">${yR.map(r=>expMeter(r.g,C.ytd.get(r.g)||0,r.y,col(r))).join("")}</div></div>`:"";
+  return `<section class="panel"><h2>${title}: траты против бюджета <span class="sub">${C.partial?"по "+xRu(C.end):"весь месяц"}</span></h2>
+  <section class="grid ${mCol&&yCol?"two":""}">${mCol}${yCol}</section>
+  ${outside.length?`<p class="note">Вне бюджета в этом месяце: ${outside.map(r=>`${esc(r.g)} — ${rub(C.cm.get(r.g))}`).join(", ")}.</p>`:""}
+  <p class="note">Лимиты — из блока «Бюджет» ниже. Фонд крупных трат считается по календарному году.</p></section>`;
+}
+function expGroupsPanel(C){
+  const max=Math.max(1,...C.groups.map(g=>g.t));
+  const kinds=[...C.kinds,...(C.other&&C.kinds.length?[""]:[])];
+  return `<section class="panel"><h2>Куда уходят деньги <span class="sub">в месяц, в среднем за 12 мес · нажмите на статью, чтобы увидеть, из чего она состоит</span></h2>
+  ${kinds.length?`<div class="legend" style="margin:0 0 6px">${kinds.map(kk=>`<span><i style="background:${expColor(kk)}"></i>${esc(kk||"без типа")}</span>`).join("")}</div>`:""}
+  <div>${C.groups.map(g=>`<details class="xg" id="xg-${xId(g.g)}"><summary>
+    <span class="nm" title="${esc(g.g)}">${esc(g.g)}</span><span class="gb"><i style="width:${(g.t/max*100).toFixed(1)}%;background:${C.kinds.length?expColor(g.k):"var(--s1)"}"></i></span><b>${rub(g.t/12)}</b><span class="muted">${(g.t/C.total*100).toLocaleString("ru-RU",{maximumFractionDigits:1})}%</span></summary>
+    <div class="tablewrap"><table><thead><tr><th>На что именно</th><th>Оценка</th><th class="num">Раз</th><th class="num">За 12 мес</th><th class="num">В месяц</th><th class="num">Средний чек</th></tr></thead><tbody>
+    ${g.items.map(it=>`<tr><td>${esc(it.i)}</td><td>${expPill(it.v)}</td><td class="num">${it.n}</td><td class="num">${rub(it.t)}</td><td class="num">${rub(it.t/12)}</td><td class="num">${rub(it.t/it.n)}</td></tr>`).join("")}
+    </tbody></table></div></details>`).join("")}</div></section>`;
+}
+function expMonthsChart(C,B){
+  const M=C.months, n=M.length; if(!n) return "";
+  const ks=C.kinds.length?[...C.kinds,...(C.other?[""]:[])]:[null];
+  const val=(x,kk)=>kk===null?x.t:kk===""?Object.entries(x.p).filter(([q])=>!EXP_KINDS.includes(q)).reduce((a,[,v])=>a+v,0):(x.p[kk]||0);
+  const col=kk=>kk===null?"var(--s1)":expColor(kk);
+  const lines=B.has?[{v:B.plan,dash:"6 4",l:`бюджет в среднем: ${rub(B.plan)} в месяц`},...(B.M>0&&C.kinds.length?[{v:B.M,dash:"2 3",l:`повседневное по бюджету: ${rub(B.M)}`}]:[])]:[];
+  const W=760,H=240,pl=46,pr=8,pt=12,pb=38, maxV=Math.max(1,...M.map(x=>x.t),...lines.map(l=>l.v))*1.06;
+  const y=v=>pt+(H-pt-pb)*(1-v/maxV), bw=(W-pl-pr)/n, w=Math.max(4,Math.min(24,bw*0.64));
+  const raw=maxV/4,p10=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,5,10].map(q=>q*p10).find(q=>q>=raw);
+  let g="";for(let v=0;v<=maxV;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)"/><text x="${pl-6}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${k(v)}</text>`;
+  const every=bw>=27?1:bw>=14?2:3; let bars="";
+  M.forEach((x,i)=>{const cx=pl+bw*(i+.5), x0=cx-w/2, [yy,mm]=x.m.split("-").map(Number); let acc=0, seg="";
+    const parts=ks.map(kk=>[kk,val(x,kk)]).filter(q=>q[1]>0);
+    parts.forEach(([kk,v],j)=>{const top=y(acc+v), bot=y(acc)-(j?2:0), h=bot-top; acc+=v; if(h<=0.5) return;
+      const r=j===parts.length-1?Math.min(4,w/2,h):0;
+      seg+=r?`<path d="M${x0.toFixed(1)} ${bot.toFixed(1)}V${(top+r).toFixed(1)}Q${x0.toFixed(1)} ${top.toFixed(1)} ${(x0+r).toFixed(1)} ${top.toFixed(1)}H${(x0+w-r).toFixed(1)}Q${(x0+w).toFixed(1)} ${top.toFixed(1)} ${(x0+w).toFixed(1)} ${(top+r).toFixed(1)}V${bot.toFixed(1)}Z" fill="${col(kk)}"/>`
+        :`<rect x="${x0.toFixed(1)}" y="${top.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${col(kk)}"/>`});
+    const tip=`${xCap(xMonth(x.m))}${x.partial?", месяц не закончился":""}: ${rub(x.t)}`+(ks[0]===null?"":parts.map(([kk,v])=>`\n${kk||"без типа"}: ${rub(v)}`).join(""));
+    bars+=`<g class="xbar"${x.partial?' opacity=".55"':""}><title>${esc(tip)}</title><rect x="${(cx-bw/2).toFixed(1)}" y="${pt}" width="${bw.toFixed(1)}" height="${H-pt-pb}" fill="transparent"/>${seg}</g>`;
+    if(i%every===0) bars+=`<text x="${cx.toFixed(1)}" y="${H-pb+14}" text-anchor="middle">${MONTHS[mm-1].toLowerCase()}</text>`;
+    if(mm===1||i===0) bars+=`<text x="${cx.toFixed(1)}" y="${H-pb+29}" text-anchor="middle" style="font-weight:600">${yy}</text>`;
+  });
+  const ln=lines.map(l=>`<line x1="${pl}" x2="${W-pr}" y1="${y(l.v).toFixed(1)}" y2="${y(l.v).toFixed(1)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="${l.dash}" opacity=".75"/>`).join("");
+  return `<div class="tablewrap xchart"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:600px;display:block" role="img" aria-label="Траты по месяцам${C.kinds.length?", по типам":""}">${g}${bars}${ln}</svg></div>
+  <div class="legend">${ks[0]===null?"":ks.map(kk=>`<span><i style="background:${col(kk)}"></i>${esc(kk||"без типа")}</span>`).join("")}${lines.map(l=>`<span><i class="ln" style="border-top-style:${l.dash==="2 3"?"dotted":"dashed"}"></i>${esc(l.l)}</span>`).join("")}</div>`;
+}
+function expMonthsPanel(C,B){
+  const ks=C.kinds.length?[...C.kinds,...(C.other?[""]:[])]:[];
+  const val=(x,kk)=>kk===""?Object.entries(x.p).filter(([q])=>!EXP_KINDS.includes(q)).reduce((a,[,v])=>a+v,0):(x.p[kk]||0);
+  return `<section class="panel"><h2>Траты по месяцам <span class="sub">${B.has&&C.kinds.length?"нижние два цвета — повседневное, сравнивайте их с точечной линией":"наведите на столбец — покажу разбивку"}</span></h2>
+  ${expMonthsChart(C,B)}
+  <details id="x-mt"><summary class="muted" style="font-size:13px;margin-top:10px">Таблица по месяцам</summary>
+  <div class="tablewrap"><table><thead><tr><th>Месяц</th>${ks.map(kk=>`<th class="num">${esc(kk||"без типа")}</th>`).join("")}<th class="num">Всего</th></tr></thead><tbody>
+  ${C.months.slice().reverse().map(x=>`<tr><td>${xCap(xMonth(x.m))}${x.partial?' <span class="muted">· неполный</span>':""}</td>${ks.map(kk=>`<td class="num">${rub(val(x,kk))}</td>`).join("")}<td class="num"><b>${rub(x.t)}</b></td></tr>`).join("")}
+  </tbody></table></div></details></section>`;
+}
+function expLeaksPanel(C){
+  if(!C.rated) return "";
+  const A=C.leaks.filter(x=>x.v===EXP_AVOID), Cu=C.leaks.filter(x=>x.v===EXP_CUT);
+  const tbl=(list,lim)=>`<div class="tablewrap"><table><thead><tr><th>Позиция</th><th class="num">За 12 мес</th><th class="num">Раз</th><th class="num">Средний чек</th></tr></thead><tbody>
+    ${list.slice(0,lim).map(x=>`<tr><td>${esc(x.i)}<span class="src" style="display:block">${esc([...x.gs].join(", "))}</span></td><td class="num">${rub(x.t)}</td><td class="num">${x.n}</td><td class="num">${rub(x.t/x.n)}</td></tr>`).join("")}
+    </tbody></table></div>${list.length>lim?`<p class="note">И ещё ${list.length-lim} ${plural(list.length-lim,"позиция","позиции","позиций")} на ${rub(list.slice(lim).reduce((a,x)=>a+x.t,0))}.</p>`:""}`;
+  return `<section class="grid two">
+    <div class="panel"><h2>Можно было не тратить <span class="sub">${rub(C.avoid)} за 12 мес · ${rub(C.avoid/12)} в месяц</span></h2>${A.length?tbl(A,8):`<div class="empty">Таких трат нет</div>`}</div>
+    <div class="panel"><h2>Можно сократить <span class="sub">${rub(C.cut)} за 12 мес · ${rub(C.cut/12)} в месяц</span></h2>${Cu.length?tbl(Cu,10):`<div class="empty">Таких трат нет</div>`}</div>
+  </section>`;
+}
+function expInvestPanel(C,B,inc){
+  const s=state.settings, t=totals(), c0=num(s.contribution);
+  const card=(name,sub,v,btn)=>{const G=expGoal(v), r=Math.round(v/1000)*1000;
+    return `<div><span class="cap">${name}</span><b class="${v>=0?"":"down"}">${rub(v)}</b><span class="muted">в месяц на инвестиции, ${Math.round(v/inc*100)}% дохода${sub?` · ${sub}`:""}</span>
+      <span>40 млн — <b style="font:600 14px var(--body)">${G.txt}</b>${G.m?` <span class="muted">· через ${durLabel(G.m)}</span>`:""}</span>
+      ${btn&&v>0?Math.abs(r-c0)>=1000?`<button class="btn" type="button" data-xcontrib="${r}" style="justify-self:start;margin-top:4px" title="Поставить ${nf.format(r)} ₽ в «Пополнение в месяц» на «Обзоре»">Поставить в прогноз</button>`:`<span class="muted">уже стоит в прогнозе</span>`:""}</div>`};
+  return `<section class="panel" id="x-inv"><h2>Сколько остаётся на инвестиции <span class="sub">доход минус траты — и когда при этом будет 40 млн</span></h2>
+  <div class="scen">
+    <label class="f">Зарплата в месяц, на руки<input id="x-sal" class="xmoney" inputmode="numeric" autocomplete="off" value="${num(s.salary)?nf.format(num(s.salary)):""}" placeholder="0" style="width:150px"></label>
+    <label class="f">Премия за год, на руки<input id="x-bon" class="xmoney" inputmode="numeric" autocomplete="off" value="${num(s.bonus)?nf.format(num(s.bonus)):""}" placeholder="0" style="width:150px"></label>
+    <span class="muted" style="padding-bottom:7px">доход в месяц: <b style="color:var(--ink)">${inc>0?rub(inc):"—"}</b>${num(s.bonus)?" (премия поделена на 12)":""}</span>
+  </div>
+  ${inc>0?`<div class="trio xinv">
+    ${card("Если тратить как сейчас",`траты ${rub(C.avg)}`,inc-C.avg,true)}
+    ${B.has?card("Если держать бюджет",`траты ${rub(B.plan)}`,inc-B.plan,true):""}
+    ${card("Сейчас в прогнозе на «Обзоре»","",c0,false)}
+  </div>`:`<div class="empty">Укажите доход — посчитаю, сколько остаётся на инвестиции и когда будет 40 млн.</div>`}
+  <p class="note">Срок до 40 млн — как на «Обзоре»: от ${state.settings.base==="all"?"всего капитала без машины":"ликвидного портфеля"} ${mln(t.goalBase)}, доходность ${String(num(s.rate)).replace(".",",")}% годовых. Доход хранится только в этом браузере.</p></section>`;
+}
+function expBudgetPanel(C,B,inc){
+  const hasP=B.rows.some(r=>r.p!=null);
+  const sec=[["m","Каждый месяц — из зарплаты"],["y","Крупное — фонд на год"],["","Без бюджета"]];
+  const tr=r=>{const d=r.b==="y"?r.y/12-r.fact:r.b==="m"?r.m-r.fact:null;
+    return `<tr><td>${r.k?`<i class="sw" style="background:${expColor(r.k)}"></i>`:""}${esc(r.g)}</td>${hasP?`<td class="num">${r.p!=null?rub(r.p):'<span class="muted">—</span>'}</td>`:""}<td class="num">${rub(r.fact)}</td>
+      <td class="num"><input class="xmoney" inputmode="numeric" autocomplete="off" data-xb="m" data-g="${esc(r.g)}" value="${r.m?nf.format(r.m):""}" placeholder="—" aria-label="${esc(r.g)}: бюджет в месяц"></td>
+      <td class="num"><input class="xmoney" inputmode="numeric" autocomplete="off" data-xb="y" data-g="${esc(r.g)}" value="${r.y?nf.format(r.y):""}" placeholder="—" aria-label="${esc(r.g)}: фонд на год"></td>
+      <td class="num">${d==null||(!r.m&&!r.y&&!r.in)?"":signed(d)}</td><td class="src" style="min-width:220px;max-width:46ch">${esc(r.how)}</td></tr>`};
+  const body=sec.map(([b,label])=>{const list=B.rows.filter(r=>(b?r.b===b:!r.b)).sort((a,c)=>c.fact-a.fact);if(!list.length)return "";
+    return `<tr class="xsec"><td colspan="${hasP?7:6}">${label}</td></tr>`+list.map(tr).join("")}).join("");
+  const F=B.rows.reduce((x,r)=>x+r.fact,0), P=B.rows.reduce((x,r)=>x+(r.p||0),0);
+  return `<section class="panel" id="x-bud"><h2>Бюджет <span class="sub">лимит в месяц для повседневного и фонд на год для крупного · меняйте прямо в таблице</span></h2>
+  <div class="tablewrap"><table class="xbt"><thead><tr><th>Статья</th>${hasP?`<th class="num">Ваш план</th>`:""}<th class="num">Факт в месяц</th><th class="num">В месяц</th><th class="num">Фонд на год</th><th class="num">Разница в месяц</th><th>Как держать</th></tr></thead>
+  <tbody>${body}</tbody>
+  <tfoot><tr><td>Итого</td>${hasP?`<td class="num">${rub(P)}</td>`:""}<td class="num">${rub(F)}</td><td class="num">${rub(B.M)}</td><td class="num">${rub(B.Y)}</td><td class="num">${B.has?signed(B.plan-F):""}</td><td class="src">${B.has?`в среднем ${rub(B.plan)} в месяц${inc>0?` · на инвестиции ${rub(inc-B.plan)}`:""}`:"задайте лимиты — появятся «Этот месяц» и линии на графике"}</td></tr></tfoot></table></div>
+  <p class="note">«Факт в месяц» — среднее за 12 мес. «Разница» — бюджет минус факт в месяц; для фонда — фонд, делённый на 12, минус факт.</p></section>`;
+}
+function expChangedPanel(C){
+  const D=expChanged(C); if(!D) return "";
+  const mo=ym=>MONTHS[+ym.slice(5,7)-1].toLowerCase(), rng=(a,b)=>a.slice(0,4)===b.slice(0,4)?`${mo(a)} — ${mo(b)} ${b.slice(0,4)}`:`${mo(a)} ${a.slice(0,4)} — ${mo(b)} ${b.slice(0,4)}`;
+  return `<div class="panel"><h2>Что изменилось <span class="sub">${rng(D.bFrom,D.bTo)} против ${rng(D.aFrom,D.aTo)}, в месяц</span></h2>
+  <p class="lead" style="font-size:14px;margin-bottom:8px">Было ${rub(D.a)} в месяц, стало ${rub(D.b)}: <span class="${D.b>D.a?"down":"up"}">${signed(D.b-D.a)}</span>.</p>
+  ${D.rows.length?`<div class="tablewrap"><table><thead><tr><th>Статья</th><th class="num">Было</th><th class="num">Стало</th><th class="num">Разница</th></tr></thead><tbody>
+  ${D.rows.map(r=>`<tr><td>${esc(r.g)}</td><td class="num">${rub(r.a)}</td><td class="num">${rub(r.b)}</td><td class="num ${r.d>0?"down":"up"}">${signed(r.d)}</td></tr>`).join("")}</tbody></table></div>
+  <p class="note">Статьи, где разница больше 1 500 ₽ в месяц. Неполный текущий месяц не учитывается.</p>`:`<p class="note">Ни одна статья не сдвинулась больше чем на 1 500 ₽ в месяц.</p>`}</div>`;
+}
+function expYearsPanel(C,B){
+  if(!C.years.length) return "";
+  const max=Math.max(1,...C.years.map(y=>y.avg)), full=C.years.filter(y=>y.n>=12), best=(full.length?full:C.years).reduce((a,y)=>y.avg<a.avg?y:a);
+  return `<div class="panel"><h2>Так было и раньше? <span class="sub">средние траты в месяц по годам</span></h2>
+  <div class="alloc">${C.years.map(y=>`<div class="row"><span>${y.y}${y.n<12?` <span class="muted">· ${y.n} ${plural(y.n,"месяц","месяца","месяцев")}</span>`:""}</span><b>${rub(y.avg)}</b><div class="bar"><i style="width:${(y.avg/max*100).toFixed(1)}%"></i></div></div>`).join("")}</div>
+  <p class="note">Самый экономный год — ${best.y}: ${rub(best.avg)} в месяц.${B.has?` По бюджету — ${rub(B.plan)}.`:""} Среднее — сумма за год, делённая на число месяцев с записями.</p></div>`;
+}
+function expBigPanel(C){
+  if(!C.big.length) return "";
+  return `<section class="panel"><h2>Крупные разовые траты <span class="sub">от 10 000 ₽ за 12 мес, кроме обязательных платежей</span></h2>
+  <div class="tablewrap"><table><thead><tr><th>Дата</th><th>Статья</th><th>Комментарий</th><th class="num">Сумма</th></tr></thead><tbody>
+  ${C.big.map(r=>`<tr><td>${xRu(r.d)}</td><td>${esc(r.g)}</td><td class="muted">${esc(r.n)||"—"}</td><td class="num">${rub(r.a)}</td></tr>`).join("")}</tbody></table></div></section>`;
+}
+function expHowPanel(C){
+  const X=C.X, sk=C.skip.reduce((a,r)=>a+r.a,0), skG=[...new Set(C.skip.map(r=>r.g))], unl=C.w.filter(r=>!r.v).length;
+  return `<details class="panel" id="x-how"><summary><b>Как считалось и где хранятся траты</b></summary>
+  <ul class="note" style="max-width:90ch;padding-left:18px;line-height:1.6">
+    <li>Период — 365 дней до последней записи: с ${xRu(C.start)} по ${xRu(C.end)}. «В месяц» — сумма за период, делённая на 12.</li>
+    ${C.kinds.length?`<li>Повседневное — типы «Обязательные» и «Образ жизни», крупное и редкое — остальные.</li>`:""}
+    ${C.skip.length?`<li>Не учитываются траты с типом «${EXP_SKIP}»: ${C.skip.length} за 12 мес на ${rub(sk)}${skG.length?` (${esc(skG.join(", "))})`:""}.</li>`:""}
+    ${C.rated?`<li>Оценки «можно было не тратить» и «можно сократить» — из разметки файла. Новые траты из Monefy размечаются по прошлым: по той же трате, тому же комментарию или словам из него.${unl?` Без оценки — ${nf.format(unl)} ${plural(unl,"трата","траты","трат")} за 12 мес.`:""}</li>`:""}
+    <li>Траты хранятся только в этом браузере и попадают в «Экспорт». На сайт и в его код они не попадают.</li>
+  </ul>
+  <div class="toolbar"><button class="btn" type="button" data-xload>Загрузить другой файл</button><button class="btn ghost" type="button" id="x-drop" style="color:var(--down)">Удалить траты из браузера</button></div></details>`;
+}
+function bindExpenses(){
+  main.querySelectorAll("input.xmoney").forEach(el=>{el.addEventListener("focus",()=>el.select());el.addEventListener("change",()=>{const v=Math.max(0,Math.round(num(el.value)));el.value=v?nf.format(v):""})});
+  main.querySelectorAll(".xchart").forEach(el=>{el.scrollLeft=el.scrollWidth});
+  const sal=document.getElementById("x-sal"), bon=document.getElementById("x-bon");
+  if(sal) sal.addEventListener("change",()=>{saveSettings({salary:Math.max(0,num(sal.value))});schedule()});
+  if(bon) bon.addEventListener("change",()=>{saveSettings({bonus:Math.max(0,num(bon.value))});schedule()});
+  main.querySelectorAll("[data-xb]").forEach(el=>el.addEventListener("change",()=>{
+    const X=expLoad(), g=el.dataset.g, f=el.dataset.xb, v=Math.max(0,Math.round(num(el.value)));
+    let b=X.budget.find(x=>x.g===g); if(!b){if(!v)return;b={g,m:0,y:0,b:f,how:""};X.budget.push(b)}
+    b[f]=v; if(v>0) b.b=f; expSave(); schedule()}));
+  main.querySelectorAll("[data-xcontrib]").forEach(b=>b.onclick=()=>{const v=+b.dataset.xcontrib;saveSettings({contribution:v});render();
+    toast(`Пополнение в месяц на «Обзоре»: ${nf.format(v)} ₽`)});
+  main.querySelectorAll("[data-xjump]").forEach(a=>a.onclick=e=>{e.preventDefault();const el=document.getElementById(a.dataset.xjump);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});const i=el.querySelector("input");if(i)setTimeout(()=>i.focus({preventScroll:true}),400)}});
+  const dr=document.getElementById("x-drop"); if(dr) dr.onclick=()=>{
+    if(!dr.classList.contains("armed")){dr.dataset.label=dr.textContent;dr.classList.add("armed");dr.textContent="Точно удалить все траты? Нажмите ещё раз";
+      setTimeout(()=>{if(dr.isConnected){dr.classList.remove("armed");dr.textContent=dr.dataset.label}},4000);return}
+    try{localStorage.removeItem(EXP_LS)}catch(e){} EXP={rows:[],budget:[],src:null}; render(); toast("Траты удалены из этого браузера")};
 }
 
 // ---------- helpers shared by new tabs ----------
@@ -2291,11 +2768,13 @@ function openCalc(){
 // ---------- events ----------
 function bind(){
   const ex=document.getElementById("exp"); if(ex) ex.onclick=()=>{
-    const data=JSON.stringify(snapshot(),null,2);
+    let data=JSON.stringify(snapshot(),null,2); const X=expLoad();
+    if(X.rows.length||X.budget.length) data=data.replace(/\n}$/,`,\n  "expenses": ${JSON.stringify(expPack(X))}\n}`);
     const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
     a.download="kapital-"+new Date().toISOString().slice(0,10)+".json"; document.body.appendChild(a); a.click(); a.remove();};
   const im=document.getElementById("imp"); if(im) im.onchange=()=>{const f=im.files[0]; if(!f) return; const r=new FileReader();
     r.onload=()=>{try{const d=JSON.parse(r.result); if(!d||typeof d!=="object"||!Array.isArray(d.accounts)) throw 0; applyData(d);
+      if(d.expenses&&Array.isArray(d.expenses.rows)){EXP=expUnpack(d.expenses);expSave()}
       saveLocal(); render(); toast("Данные загружены");}catch(e){const b=document.getElementById("banner"); b.hidden=false; b.textContent="Не удалось прочитать файл: выберите JSON, сохранённый кнопкой «Экспорт»."}};
     r.readAsText(f);};
   main.querySelectorAll("tr[data-coll] [data-f]").forEach(el=>{
@@ -2320,7 +2799,7 @@ function bind(){
     const ex=state.months.find(m=>m.id===id);
     if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
     else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
-  bindNew(); bindConnect();
+  bindNew(); bindConnect(); bindExpenses();
   main.querySelectorAll("[data-pc]").forEach(b=>b.onclick=()=>{pfClass=b.dataset.pc;render()});
   main.querySelectorAll("[data-pfacc]").forEach(b=>b.onclick=e=>{e.preventDefault();pfAcc=b.dataset.pfacc;try{localStorage.setItem("kapital-pf-acc",pfAcc)}catch(x){}
     pfClass="all";render();if(b.tagName==="A")window.scrollTo({top:0})});
@@ -2355,6 +2834,8 @@ document.getElementById("btn-port").onclick=()=>document.getElementById("f-port"
 document.getElementById("f-port").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handlePortfolioFile(f)};
 document.getElementById("btn-pay").onclick=()=>document.getElementById("f-pay").click();
 document.getElementById("f-pay").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handlePayoutsFile(f)};
+document.getElementById("f-exp").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handleExpensesFile(f)};
+main.addEventListener("click",e=>{const b=e.target.closest("[data-xload]");if(b){e.preventDefault();document.getElementById("f-exp").click()}});
 document.getElementById("btn-calc").onclick=openCalc;
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 
