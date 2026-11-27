@@ -52,6 +52,29 @@ nav button{border:0;background:transparent;color:var(--muted);font:500 14px var(
 nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
 nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-block:20px 48px;display:grid;gap:18px}
+/* A tab that took in a former tab: a quiet divider with the old tab's name marks where that part starts */
+/* Capital calculator on «Планы»: fields on the left, the result on the right; one column on a phone */
+.calc{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.calc{grid-template-columns:minmax(0,1fr)}}
+.calc .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.calc .fields .wide{grid-column:1/-1}
+.calc .fields input:not([type=checkbox]),.calc .fields select{width:100%}
+.calc label.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink);cursor:pointer}
+.calc-more{margin-top:12px;background:var(--surface2);border-radius:var(--r);padding:10px 12px}
+.calc-more summary{font-size:13px;color:var(--muted)}
+.calc-more .fields{margin-top:10px}
+.calc-big{font:600 30px var(--display);letter-spacing:-.02em;margin:2px 0 4px}
+.calc-sub{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:72ch}
+.calc h3{font-size:14px;font-weight:600;margin:20px 0 0}
+.calc .rows{display:grid;margin-top:14px;max-width:560px}
+.calc .rows .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.calc .rows .row span{color:var(--muted)}
+.calc .rows .row b{white-space:nowrap}
+.calc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:10px;background:var(--surface2);border-radius:var(--r);padding:12px}
+.calc-stats small{display:block;font-size:12px;color:var(--muted)}
+.calc-stats b{display:block;font:500 18px var(--display);letter-spacing:-.01em;margin:2px 0}
+.calc-stats span{font-size:12px;color:var(--faint)}
+main h2.part{font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:10px 0 -6px;padding-top:16px;border-top:1px solid var(--line)}
 .banner{background:var(--warn-soft);color:var(--warn);border-radius:var(--r);padding:10px 14px;font-size:13px}
 .grid{display:grid;gap:14px}
 .kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
@@ -230,26 +253,21 @@ input.xmoney{text-align:right}
       <div class="hbtns">
         <button class="btn" id="btn-port" title="Загрузить CSV/Excel с бумагами — обновит позиции и создаст нужный брокерский счёт">Портфель из файла</button>
         <button class="btn" id="btn-pay" title="Загрузить CSV/Excel с дивидендами и купонами">Выплаты из файла</button>
-        <button class="btn primary" id="btn-calc" title="Сложный процент и сроки достижения всех целей">Калькулятор</button>
+        <button class="btn primary" id="btn-calc" title="Калькулятор капитала на вкладке «Планы»">Калькулятор</button>
       </div>
       <input type="file" id="f-port" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
       <input type="file" id="f-pay" accept=".csv,.xlsx,.xls,.txt,.json" hidden>
       <input type="file" id="f-exp" accept=".zip,.csv,.txt,.html,.htm,.json,.xlsx,.xls,.md" hidden>
     </div>
     <nav role="tablist" id="tabs">
-      <button role="tab" data-tab="overview" aria-selected="true">Обзор и цель</button>
+      <button role="tab" data-tab="overview" aria-selected="true">Обзор</button>
       <button role="tab" data-tab="portfolio" aria-selected="false">Портфель</button>
-      <button role="tab" data-tab="analysis" aria-selected="false">Анализ бумаг</button>
-      <button role="tab" data-tab="advice" aria-selected="false">Рекомендации</button>
-      <button role="tab" data-tab="income" aria-selected="false">Пассив и дивиденды</button>
-      <button role="tab" data-tab="plans" aria-selected="false">Планы</button>
-      <button role="tab" data-tab="accounts" aria-selected="false">Счета</button>
-      <button role="tab" data-tab="positions" aria-selected="false">Бумаги</button>
-      <button role="tab" data-tab="structure" aria-selected="false">Штанга</button>
-      <button role="tab" data-tab="payouts" aria-selected="false">Выплаты</button>
-      <button role="tab" data-tab="expenses" aria-selected="false">Расходы</button>
-      <button role="tab" data-tab="budget" aria-selected="false">Бюджет</button>
-      <button role="tab" data-tab="tasks" aria-selected="false">Налоги и задачи</button>
+      <button role="tab" data-tab="analysis" aria-selected="false">Анализ</button>
+      <button role="tab" data-tab="advice" aria-selected="false" title="Рекомендации и «Штанга»">Советы</button>
+      <button role="tab" data-tab="income" aria-selected="false" title="Пассив, дивиденды и выплаты">Пассив</button>
+      <button role="tab" data-tab="expenses" aria-selected="false" title="Расходы и учёт по месяцам">Расходы</button>
+      <button role="tab" data-tab="plans" aria-selected="false" title="Планы, налоги и задачи">Планы</button>
+      <button role="tab" data-tab="accounts" aria-selected="false" title="Счета и бумаги: ручной ввод">Счета</button>
       <button role="tab" data-tab="connect" aria-selected="false">Подключения</button>
     </nav>
   </div>
@@ -278,6 +296,8 @@ const DEFAULT_SETTINGS={contribution:200000,rate:17,base:"liquid",goalIncome:300
 const COLLS=["accounts","positions","payouts","months","plans","tasks","qual"];
 const state={settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),accounts:[],positions:[],payouts:[],months:[],plans:[],tasks:[],qual:[],loaded:false,demo:false};
 let db=null, tab="overview", payYear=new Date().getFullYear(), pendingRender=false, persistOK=false;
+// Tabs merged on 27.11.2026: an old tab name opens the tab that now holds that section
+const TAB_ALIAS={structure:"advice",payouts:"income",budget:"expenses",tasks:"plans",positions:"accounts"};
 let heroBase=null; // contribution and rate when the data was opened — what the hero's "раньше / позже" compares against
 
 // ---------- formatting ----------
@@ -382,7 +402,14 @@ function render(){
     <span style="margin-right:auto">${state.demo?"<b>Это пример данных.</b> Нажмите «Импорт» и выберите свой файл kapital-*.json. ":""}Данные хранятся только в этом браузере. Сохраняйте копию через «Экспорт», переносите на другое устройство через «Импорт».</span>
     <button class="btn" id="exp">Экспорт</button><label class="btn" for="imp">Импорт</label><input type="file" id="imp" accept=".json,application/json" hidden></div>`);
   if(!state.loaded){main.innerHTML=banner+`<div class="panel empty">Загружаю ваши счета…</div>`;return}
-  const views={overview,portfolio,analysis,advice,income,plans,accounts,positions,structure,payouts,expenses,budget,tasks:tasksTab,connect};
+  const part=t=>`<h2 class="part">${t}</h2>`;
+  const views={overview,portfolio,analysis,
+    advice:()=>advice()+part("Штанга")+structure(),
+    income:()=>income()+part("Выплаты")+payouts(true),
+    expenses:()=>expenses()+part("Учёт по месяцам")+budget(),
+    plans:()=>calcHTML()+plans()+part("Налоги и задачи")+tasksTab(),
+    accounts:()=>accounts()+part("Бумаги")+positions(),
+    connect};
   main.innerHTML=banner+(views[tab]||overview)();
   main.querySelectorAll("details[id]").forEach(d=>{if(dOpen.has(d.id))d.open=true});
   bind();
@@ -390,7 +417,7 @@ function render(){
   // part-to-whole bar: drop a share label that does not fit its block
   main.querySelectorAll(".segbar span").forEach(x=>{if(x.scrollWidth>x.clientWidth+1)x.textContent=""});
 }
-function setTab(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t)); tabIntoView(true);
+function setTab(t){t=TAB_ALIAS[t]||t; tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t)); tabIntoView(true);
   try{localStorage.setItem("kapital-tab",tab)}catch(e){} render(); window.scrollTo({top:0});
   if((t==="analysis"||t==="advice")&&tinvAutoOK()&&!tinvBusy&&Date.now()-(tinv.tried||0)>15000){const pr=anProgress();if(pr.done<pr.all)tinvSync(false)}}
 
@@ -410,7 +437,7 @@ function overview(){
     <div class="panel kpi"><small>Чистый капитал</small><div class="v">${mln(t.nw)}</div><div class="n">активы ${mln(t.assets)} · долги ${mln(t.debts)}</div></div>
     <div class="panel kpi"><small>Ликвидный портфель</small><div class="v">${mln(t.liquid)}</div><div class="n">брокеры, ИИС, деньги</div></div>
     <div class="panel kpi"><small>Пассивный доход</small><div class="v">${rub(t.passive)}</div><div class="n">в месяц, факт за 12 мес${F.sum>0?` · прогноз Т-Банка ≈ ${rub(F.sum/12)}`:""}</div></div>
-    <div class="panel kpi"><small>Норма сбережений</small><div class="v">${avgSave==null?"—":Math.round(avgSave/Math.max(1,avgInc)*100)+"%"}</div><div class="n">${avgSave==null?"заполните «Бюджет»":"откладываю ~"+rub(avgSave)+" / мес"}</div></div>
+    <div class="panel kpi"><small>Норма сбережений</small><div class="v">${avgSave==null?"—":Math.round(avgSave/Math.max(1,avgInc)*100)+"%"}</div><div class="n">${avgSave==null?"заполните «Учёт по месяцам» в «Расходах»":"откладываю ~"+rub(avgSave)+" / мес"}</div></div>
   </section>
   <section class="panel" id="snow" aria-label="Снежный ком"></section>
   <section class="grid two">
@@ -473,7 +500,7 @@ function heroHTML(avgSave){
       <div class="big"><input id="h-c" inputmode="numeric" autocomplete="off" value="${nf.format(c)}"><span>₽</span></div>
       <input id="h-range" type="range" min="0" max="${Math.max(1e6,c)}" step="5000" value="${c}" aria-label="Пополнение в месяц, ползунок">
       <div class="chips">${[-50000,-10000,10000,50000].map(d=>`<button class="btn" type="button" data-dc="${d}">${d>0?"+":"−"}${nf.format(Math.abs(d))}</button>`).join("")}
-        ${avgSave!=null?`<button class="btn" type="button" id="h-budget" title="Средняя сумма «Отложено» за последние 6 месяцев из вкладки «Бюджет»">Из бюджета: ${k(avgSave)}</button>`:""}
+        ${avgSave!=null?`<button class="btn" type="button" id="h-budget" title="Средняя сумма «Отложено» за последние 6 месяцев из раздела «Учёт по месяцам» на вкладке «Расходы»">Из бюджета: ${k(avgSave)}</button>`:""}
         <button class="btn" type="button" id="h-reset" ${c===heroBase.c&&num(s.rate)===heroBase.r?"hidden":""}>Вернуть ${nf.format(heroBase.c)} ₽</button></div>
       <p class="note" style="margin-top:10px">Сколько докладываете в портфель каждый месяц — например, часть зарплаты. Меняйте сумму — сразу видно, на сколько цели приближаются или отдаляются.</p>
       <label class="f" style="margin-top:12px;max-width:240px">Доходность портфеля, % годовых<input id="s-rate" type="number" step="0.5" value="${num(s.rate)}" style="width:110px"><span class="hint">средний рост в год вместе с выплатами</span></label>
@@ -705,7 +732,7 @@ function portfolio(){
   const hasR=R&&R.result!=null, fcN=V.all&&F.live&&F.sum>0?`прогноз Т-Банка ≈ ${rub(F.sum/12)}`:"";
   const notes=[];
   if(d.capped.length) notes.push(`В ${d.capped.map(c=>`«${esc(c.a.name)}»`).join(", ")} бумаги стоят больше суммы счёта (${d.capped.map(c=>mln(c.inPos)+" против "+mln(c.val)).join("; ")}) — здесь они уменьшены до суммы счёта. Обновите сумму во вкладке «Счета».`);
-  if(d.loose.length) notes.push(`${d.loose.length} ${nPapers(d.loose.length)} на ${rub(d.loose.reduce((x,p)=>x+num(p.value),0))} без счёта не учтены — укажите счёт во вкладке «Бумаги».`);
+  if(d.loose.length) notes.push(`${d.loose.length} ${nPapers(d.loose.length)} на ${rub(d.loose.reduce((x,p)=>x+num(p.value),0))} без счёта не учтены — укажите счёт в разделе «Бумаги» на вкладке «Счета».`);
   return `${pfSwitch(V)}<section class="grid kpis">
     <div class="panel kpi"><small>${V.all?"Всего на счетах":`Портфель «${esc(V.label)}»`}</small><div class="v">${mln(V.all?t.liquid:d.whole)}</div><div class="n">${V.all?"":`${Math.round(d.whole/Math.max(1,t.liquid)*100)}% всех денег на счетах · `}${d.accs.length} ${d.accs.length===1?"счёт":d.accs.length<5?"счёта":"счетов"}${V.all?(auto?" · Т-Банк обновляется сам":""):V.accs.every(isAuto)?" · обновляется сам":" · цифры внесены вручную"}</div></div>
     <div class="panel kpi"><small>В бумагах</small><div class="v">${mln(inPapers)}</div><div class="n">${d.held.length} ${nPapers(d.held.length)} · ${pct(inPapers)} портфеля</div></div>
@@ -739,7 +766,7 @@ function portfolio(){
       <td class="num">${fcCell(p)}</td>
       <td><span class="pill ${p.verdict in VERDICT?p.verdict:"hold"}">${VERDICT[p.verdict]||"Держать"}</span></td></tr>`}).join("")}
     </tbody><tfoot><tr><td colspan="3">${pfClass==="all"?"Все бумаги":esc((CLASSES.find(c=>c.k===pfClass)||{}).n||"")}</td><td class="num">${rub(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${pct(list.reduce((x,p)=>x+p.cv,0))}</td><td class="num">${signed(list.filter(p=>num(p.cost)>0).reduce((x,p)=>x+rv(p),0))}</td><td class="num">${rub(list.reduce((x,p)=>x+((F.items[p.id]||{}).v||0),0))}</td><td></td></tr></tfoot></table></div>`:""}
-    <p class="note">Доля — от ${V.all?"всего портфеля":`портфеля «${esc(V.label)}»`} (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Переоценка — текущая цена минус цена покупки, без накопленного купонного дохода${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}. Выплаты за 12 мес — прогноз по известным суммам, до налога: купоны по графику, объявленные дивиденды, у фондов — как за прошлый год.${d.empty?` Ещё ${d.empty} ${nPapers(d.empty)} без текущей стоимости ${d.empty%10===1&&d.empty%100!==11?"не показана":"не показаны"} — заполните «Стоит сейчас» во вкладке «Бумаги».`:""} Решения меняются во вкладке «Бумаги».</p>
+    <p class="note">Доля — от ${V.all?"всего портфеля":`портфеля «${esc(V.label)}»`} (${mln(d.whole)}); полоска — для сравнения с самой крупной бумагой. Переоценка — текущая цена минус цена покупки, без накопленного купонного дохода${auto?"; у бумаг Т-Банка — по средней цене из брокера":""}. Выплаты за 12 мес — прогноз по известным суммам, до налога: купоны по графику, объявленные дивиденды, у фондов — как за прошлый год.${d.empty?` Ещё ${d.empty} ${nPapers(d.empty)} без текущей стоимости ${d.empty%10===1&&d.empty%100!==11?"не показана":"не показаны"} — заполните «Стоит сейчас» в разделе «Бумаги» на вкладке «Счета».`:""} Решения меняются в разделе «Бумаги» на вкладке «Счета».</p>
   </div>`;
 }
 
@@ -845,7 +872,7 @@ function analysis(){
   const swOf=n=>{const i=top.indexOf(n);return `<i class="sw" style="background:${i>=0?`var(--s${i+1})`:"var(--s0)"}"></i>`};
   const loading=pr&&pr.all&&pr.done<pr.all?`<div class="banner">Загружаю показатели из Т-Инвестиций: готово ${pr.done} из ${pr.all} ${nPapers(pr.all)}. Пока открыта эта вкладка, данные догружаются каждую минуту.</div>`:"";
   const noTok=tinv.token?"":`<div class="banner">Подключите Т-Инвестиции во вкладке «Подключения»: тогда у бумаг Т-Банка появятся доходность облигаций, показатели компаний и прогнозы аналитиков. У бумаг других брокеров здесь только ваши цифры.</div>`;
-  if(!L.length) return pfSwitch(V)+noTok+`<div class="panel empty">Бумаг с текущей стоимостью пока нет — добавьте их во вкладке «Бумаги» или подключите Т-Инвестиции.</div>`;
+  if(!L.length) return pfSwitch(V)+noTok+`<div class="panel empty">Бумаг с текущей стоимостью пока нет — добавьте их в разделе «Бумаги» на вкладке «Счета» или подключите Т-Инвестиции.</div>`;
   const bRow=o=>{const b=o.bond, i=o.info||{};
     return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td>
     <td>${i.mat?`${new Date(i.mat).toLocaleDateString("ru-RU",{month:"short",year:"numeric"}).replace(/ г\.$/,"")}<br><small class="muted">через ${yearsLabel(b?b.years:(i.mat-Date.now())/(365.25*864e5))}</small>`:i.perp?"бессрочная":DASH}</td>
@@ -893,11 +920,11 @@ function analysis(){
     <p class="note">Многие фонды ничего не выплачивают, а вкладывают доход снова — тогда он виден только в цене пая. Комиссия — сколько фонд берёт в год от стоимости паёв (данные Т-Инвестиций).</p></div>`:""}
   ${others.length?`<div class="panel"><h2>Прочее <span class="sub">валюта, фьючерсы и другое</span></h2><div class="tablewrap"><table><thead><tr><th>Бумага</th><th class="num">Стоит</th><th class="num">Доля</th></tr></thead><tbody>
     ${others.map(o=>`<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td></tr>`).join("")}</tbody></table></div></div>`:""}
-  <p class="note" style="margin:0">${V.all?`Доля — от всего ликвидного портфеля (${mln(P.W)}), как во вкладке «Портфель».`:`Доля — от портфеля «${esc(V.label)}» (${mln(P.W)}).`} Что с этим делать — во вкладке <a href="#" data-goto="advice">«Рекомендации»</a>.</p>`;
+  <p class="note" style="margin:0">${V.all?`Доля — от всего ликвидного портфеля (${mln(P.W)}), как во вкладке «Портфель».`:`Доля — от портфеля «${esc(V.label)}» (${mln(P.W)}).`} Что с этим делать — во вкладке <a href="#" data-goto="advice">«Советы»</a>.</p>`;
 }
 
 // ----- Advice: what to do with the portfolio now (simple rules, computed in the browser) -----
-// [label, pill class, decision it sets in «Бумаги»]
+// [label, pill class, decision it sets in the «Бумаги» section of «Счета»]
 const ACT={buy:["Докупать","buy","buy"],hold:["Держать","hold","hold"],keep:["Держать до погашения","hold","hold"],nobuy:["Держать, не докупать","hold","hold"],
   cut:["Сократить","watch","watch"],swap:["Заменить","sell","sell"]};
 const BLOCK_HOW={ofz:"ОФЗ с постоянным купоном на 5–15 лет: когда ЦБ снижает ставку, их цена растёт",div:"фонд на индекс Мосбиржи (например, TMOS или EQMX) или 10–15 крупных компаний с дивидендами",
@@ -1001,7 +1028,7 @@ function adviceTop(P,x,al){
   const gaps=Object.keys(BLOCKS).filter(b=>al.buy[b]>=1000).sort((a,b)=>al.buy[b]-al.buy[a]);
   const lc1=t=>/^[А-ЯЁA-Z][а-яёa-z]/.test(t)?t[0].toLowerCase()+t.slice(1):t;
   if(al.pool>0&&gaps.length) out.push({pri:400,tag:["этот месяц","buy"],title:`Куда вложить ${rub(al.pool)}: ${gaps.slice(0,2).map(b=>`${lc1(BLOCKS[b])} — ${rub(al.buy[b])}`).join(", ")}${gaps.length>2?" и другое":""}`,
-    text:`Это пополнение ${rub(al.C)}${al.spare>0?` и свободные деньги сверх подушки — ${rub(al.spare)}`:""}. Так портфель приблизится к целевой структуре из вкладки «Штанга»; вся раскладка — в таблице ниже.`});
+    text:`Это пополнение ${rub(al.C)}${al.spare>0?` и свободные деньги сверх подушки — ${rub(al.spare)}`:""}. Так портфель приблизится к целевой структуре из раздела «Штанга» ниже; вся раскладка — в таблице ниже.`});
   if(!tinv.token) out.push({pri:300,tag:["данные","hold"],title:"Подключите Т-Инвестиции",
     text:"Без них советы строятся только по вашим цифрам: нет доходности облигаций, показателей компаний и прогнозов аналитиков. Подключение — во вкладке «Подключения», нужен токен только для чтения."});
   return out.sort((a,b)=>b.pri-a.pri).slice(0,7);
@@ -1031,7 +1058,7 @@ function advice(){
       return `<tr><td>${BLOCKS[b]}</td><td class="num">${pctN(f,f<10?1:0)}<br><small class="muted">${rub(al.fact[b])}</small></td><td class="num">${g}%</td>
       <td class="num">${skip?`<span class="muted">не покупаем</span>`:al.buy[b]>=1000?`<b>${rub(al.buy[b])}</b>`:DASH}</td><td style="min-width:240px" class="muted">${skip?"по стратегии новые ЗПИФ не покупаем: доля блока будет снижаться сама":BLOCK_HOW[b]}</td></tr>`}).join("")}
     </tbody><tfoot><tr><td>Итого</td><td class="num">100%<br><small class="muted">${rub(al.base)}</small></td><td class="num">${shown.reduce((v,b)=>v+num((s.target||{})[b]),0)}%</td><td class="num">${rub(shown.reduce((v,b)=>v+(b==="reit"&&al.noReit?0:al.buy[b]),0))}</td><td></td></tr></tfoot></table></div>
-    <p class="note">Пополнение — из блока «Пополнение в месяц» на «Обзоре», цели — из вкладки «Штанга». Подушка — цель блока «LQDT / кэш» (${rub(al.cushion)}): свободные деньги сверх неё вкладываются вместе с пополнением. Деньги идут в блоки, которых не хватает больше всего${al.noReit?"; ЗПИФ пропускаются, их доля распределена на остальные блоки":""}. «Сейчас» — от ${mln(al.base)} в разнесённых бумагах и свободных деньгах${al.none>=1000?`; ещё ${mln(al.none)} лежат в счетах без разбивки по бумагам и сюда не входят`:""}.</p>
+    <p class="note">Пополнение — из блока «Пополнение в месяц» на «Обзоре», цели — из раздела «Штанга» ниже. Подушка — цель блока «LQDT / кэш» (${rub(al.cushion)}): свободные деньги сверх неё вкладываются вместе с пополнением. Деньги идут в блоки, которых не хватает больше всего${al.noReit?"; ЗПИФ пропускаются, их доля распределена на остальные блоки":""}. «Сейчас» — от ${mln(al.base)} в разнесённых бумагах и свободных деньгах${al.none>=1000?`; ещё ${mln(al.none)} лежат в счетах без разбивки по бумагам и сюда не входят`:""}.</p>
   </div>
   <div class="panel"><h2>Разбор по каждой бумаге <span class="sub">${["buy","hold","keep","nobuy","cut","swap"].filter(a=>counts[a]).map(a=>`${ACT[a][0].toLowerCase()} — ${counts[a]}`).join(" · ")}</span></h2>
     ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Бумага</th><th class="num">Стоит</th><th class="num">Доля</th><th>Показатели</th><th>Совет</th><th>Почему</th><th></th></tr></thead><tbody>
@@ -1039,9 +1066,9 @@ function advice(){
       return `<tr>${nameCell(o)}<td class="num">${rub(o.cv)}</td><td class="num">${shareOf(o)}</td><td style="min-width:150px"><small>${shortMetrics(o)}</small></td>
       <td><span class="pill ${ACT[a.act][1]}">${ACT[a.act][0]}</span></td>
       <td style="min-width:260px">${a.why?a.why[0].toUpperCase()+a.why.slice(1)+".":""}${a.alt?`<br><span class="muted">${a.act==="cut"||a.act==="swap"?"Вместо":"Дальше"}: ${a.alt}.</span>`:""}${t?`<br><span class="pill watch" style="margin-top:4px">налоговая чистка</span> <small>убыток ${rub(t.loss)}: ${a.act==="swap"||a.act==="cut"?"продажа до 31 декабря уменьшит налог":"продать и откупить до 31 декабря — налог"} до −${rub(t.save)}</small>`:""}</td>
-      <td>${same?`<span class="muted" title="Такое решение уже стоит во вкладке «Бумаги»">✓</span>`:!can?"":`<button class="btn" data-adv="${esc(o.p.id)}" data-v="${v}" title="Поставить решение «${VERDICT[v]}» во вкладке «Бумаги»" style="padding:4px 10px;font-size:12px">Принять</button>`}</td></tr>`}).join("")}
+      <td>${same?`<span class="muted" title="Такое решение уже стоит в разделе «Бумаги»">✓</span>`:!can?"":`<button class="btn" data-adv="${esc(o.p.id)}" data-v="${v}" title="Поставить решение «${VERDICT[v]}» в разделе «Бумаги»" style="padding:4px 10px;font-size:12px">Принять</button>`}</td></tr>`}).join("")}
     </tbody></table></div>`:`<div class="empty">Бумаг с текущей стоимостью пока нет.</div>`}
-    <p class="note">«Принять» ставит решение во вкладке «Бумаги»: «Продать» попадает в план налоговой чистки во вкладке «Налоги и задачи», «Решить» — когда стоит продать только часть.</p>
+    <p class="note">«Принять» ставит решение в разделе «Бумаги» на вкладке «Счета»: «Продать» попадает в план налоговой чистки на вкладке «Планы», «Решить» — когда стоит продать только часть.</p>
     <details id="adv-rules" style="margin-top:8px"><summary class="muted">Как считаются советы</summary>
       <ul class="note" style="padding-left:18px;margin:8px 0 0">
         <li><b>Облигации.</b> Высокий риск по оценке Т-Банка и больше 2% портфеля — сократить. Погашение меньше чем через полгода — держать до погашения. Плавающий купон — держать, новые деньги в постоянный купон. Доходность к погашению ниже ключевой ставки больше чем на 3 п.п. — заменить. ОФЗ длиннее 5 лет, когда блока ОФЗ меньше цели — докупать.</li>
@@ -1082,7 +1109,7 @@ function positions(){
   const tv=rows.reduce((s,p)=>s+num(p.value),0), tc=rows.reduce((s,p)=>s+num(p.cost),0), gain=rows.filter(p=>num(p.cost)>0).reduce((s,p)=>s+num(p.value)-num(p.cost),0);
   const accName=id=>(state.accounts.find(a=>a.id===id)||{}).name||"—";
   return `<div class="panel"><h2>Бумаги во всех счетах <span class="sub">текущая стоимость и сколько вложено берите из приложения брокера</span></h2>
-  <div class="seg" role="group" aria-label="Фильтр">${[["all","Все"],["hold","Держать"],["buy","Докупать"],["sell","Продать"],["watch","Решить"]].map(([v,l])=>`<button data-pf="${v}" aria-pressed="${posFilter===v}">${l}</button>`).join("")}</div>
+  <div class="seg chips" role="group" aria-label="Фильтр">${[["all","Все"],["hold","Держать"],["buy","Докупать"],["sell","Продать"],["watch","Решить"]].map(([v,l])=>`<button data-pf="${v}" aria-pressed="${posFilter===v}">${l}</button>`).join("")}</div>
   ${rows.length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Бумага</th><th>Тикер</th><th>Вид</th><th>Счёт</th><th class="num">Вложено, ₽</th><th class="num">Стоит сейчас, ₽</th><th class="num">Результат</th><th>Решение</th><th></th></tr></thead><tbody>
   ${rows.map(p=>{const r=num(p.value)-num(p.cost);const pc=num(p.cost)?r/num(p.cost)*100:0;const au=!!(p.tuid&&tinv.token);
     const inAuto=isAuto(state.accounts.find(a=>a.id===p.account)), ro=au||inAuto, gone=inAuto&&(!p.tuid||!num(p.qty));return `<tr data-coll="positions" data-id="${p.id}">
@@ -1097,11 +1124,11 @@ function positions(){
     <td><button class="btn ghost" data-del="positions" data-id="${p.id}" title="Удалить">✕</button></td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="4">Итого ${posFilter==="all"?"":"("+VERDICT[posFilter]+")"}</td><td class="num">${rub(tc)}</td><td class="num">${rub(tv)}</td><td class="num ${gain>=0?"up":"down"}">${gain>=0?"+":""}${rub(gain)}</td><td colspan="2"></td></tr></tfoot></table></div>`:`<div class="empty">Здесь появятся ваши бумаги. Добавьте первую кнопкой ниже.</div>`}
   <div class="toolbar"><button class="btn primary" id="addpos">+ Добавить бумагу</button>
-  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки во вкладке «Налоги и задачи».${state.positions.some(p=>p.tuid&&tinv.token)?" У бумаг Т-Банка цена, вложено, тикер и счёт обновляются сами; название, вид и решение можно менять.":""}${state.positions.some(p=>isAuto(state.accounts.find(a=>a.id===p.account))&&(!p.tuid||!num(p.qty)))?" «Нет в счёте» — Т-Банк не показывает эту бумагу в этом счёте: она продана или была внесена вручную. Такие записи не входят в суммы; их можно удалить или перенести в другой счёт.":""}</span></div></div>`;
+  <span class="muted" style="font-size:12px">Строки с решением «Продать» попадают в план налоговой чистки на вкладке «Планы».${state.positions.some(p=>p.tuid&&tinv.token)?" У бумаг Т-Банка цена, вложено, тикер и счёт обновляются сами; название, вид и решение можно менять.":""}${state.positions.some(p=>isAuto(state.accounts.find(a=>a.id===p.account))&&(!p.tuid||!num(p.qty)))?" «Нет в счёте» — Т-Банк не показывает эту бумагу в этом счёте: она продана или была внесена вручную. Такие записи не входят в суммы; их можно удалить или перенести в другой счёт.":""}</span></div></div>`;
 }
 
 // ----- Payouts -----
-function payouts(){
+function payouts(merged){
   const yr=payYear, list=state.payouts.filter(p=>String(p.month).startsWith(yr+"-"));
   const names=[...new Set(list.map(p=>p.name))].sort();
   const cell={}; const mt=Array(12).fill(0), mc=Array(12).fill(0), md=Array(12).fill(0), mr=Array(12).fill(0);
@@ -1110,7 +1137,7 @@ function payouts(){
   const total=mt.reduce((a,b)=>a+b,0), cur=new Date();
   const years=[...new Set(state.payouts.map(p=>+String(p.month).slice(0,4)).concat([cur.getFullYear()]))].sort();
   const sums={coupon:0,dividend:0,rent:0,other:0}; list.forEach(p=>sums[p.kind in sums?p.kind:"other"]+=num(p.amount));
-  return `${dupBanner()}<div class="grid kpis">
+  return `${merged?"":dupBanner()}<div class="grid kpis">
     <div class="panel kpi"><small>Выплаты за ${yr}</small><div class="v">${rub(total)}</div><div class="n">в среднем ${rub(total/12)} / мес</div></div>
     <div class="panel kpi"><small>Купоны</small><div class="v">${rub(sums.coupon)}</div></div>
     <div class="panel kpi"><small>Дивиденды</small><div class="v">${rub(sums.dividend)}</div></div>
@@ -1721,7 +1748,7 @@ function income(){
     <p class="lead">Сейчас выплаты приносят <b>${rub(now)} в месяц</b> — это ${rub(b.D+b.O)} за последние 12 месяцев: дивиденды ${rub(b.D)}, купоны и фонды ${rub(b.O)}.
     ${F.sum>0?`По уже известным будущим выплатам Т-Банка за следующие 12 месяцев придёт около <b>${rub(F.sum)}</b>, примерно ${rub(F.sum/12)} в месяц — такой прогноз показывает renta.life.`:""}
     ${hg?`Если докладывать ${rub(num(s.contribution))} в месяц${re?" и реинвестировать выплаты":""}, пассив ${rub(goal)} в месяц — <b>${dateLabel(hg)}</b>, через ${durLabel(hg)}.`:`С такими настройками пассив ${rub(goal)} в месяц — дальше 30 лет: увеличьте пополнение.`}</p>
-    ${!b.D&&state.accounts.some(isAuto)?`<p class="note">Дивидендов за 12 месяцев нет. Раньше сайт не забирал из Т-Банка дивиденды, выплаченные на карту, — теперь забирает: дождитесь обновления или нажмите «Синхронизировать сейчас» во вкладке «Подключения». Там же есть сводка всех операций за год.</p>`:!b.D?`<p class="note">Дивидендов за 12 месяцев нет — внесите их во вкладке «Выплаты» или подключите Т-Банк.</p>`:""}
+    ${!b.D&&state.accounts.some(isAuto)?`<p class="note">Дивидендов за 12 месяцев нет. Раньше сайт не забирал из Т-Банка дивиденды, выплаченные на карту, — теперь забирает: дождитесь обновления или нажмите «Синхронизировать сейчас» во вкладке «Подключения». Там же есть сводка всех операций за год.</p>`:!b.D?`<p class="note">Дивидендов за 12 месяцев нет — внесите их в разделе «Выплаты» ниже или подключите Т-Банк.</p>`:""}
   </div>
   <section class="grid kpis">
     <div class="panel kpi"><small>Пассив сейчас · факт</small><div class="v">${rub(now)}</div><div class="n">в месяц: пришло ${rub(b.D+b.O)} за последние 12 месяцев${b.curYield!=null?`, ${b.curYield.toLocaleString("ru-RU",{maximumFractionDigits:1})}% к портфелю`:""}</div></div>
@@ -1843,7 +1870,7 @@ function structure(){
   const tsum=Object.values(tg).reduce((x,v)=>x+num(v),0);
   const pos=[...state.positions].sort((a,b)=>num(b.value)-num(a.value));
   return `<div class="panel"><h2>Целевая структура — «модифицированная штанга» <span class="sub">факт по разнесённым бумагам и свободным деньгам</span></h2>
-  ${unassigned>1000?`<div class="banner" style="margin-bottom:12px">Не разнесено по бумагам: ${mln(unassigned)} из ${mln(t.liquid)}. Заполните «Стоит сейчас» во вкладке «Бумаги» — тогда факт будет точным.</div>`:""}
+  ${unassigned>1000?`<div class="banner" style="margin-bottom:12px">Не разнесено по бумагам: ${mln(unassigned)} из ${mln(t.liquid)}. Заполните «Стоит сейчас» в разделе «Бумаги» на вкладке «Счета» — тогда факт будет точным.</div>`:""}
   <div class="tablewrap"><table><thead><tr><th>Блок</th><th class="num">Цель, %</th><th class="num">Факт, %</th><th class="num">Факт, ₽</th><th>Отклонение</th><th class="num">Докупить / сократить</th></tr></thead><tbody>
   ${Object.entries(BLOCKS).map(([b,l])=>{const f=fact[b]/base*100,goal=num(tg[b]),d=f-goal,need=goal/100*base-fact[b];
     return `<tr><td>${l}</td><td class="num" style="width:90px"><input data-tg="${b}" type="number" step="1" value="${goal}"></td><td class="num">${f.toFixed(1)}%</td><td class="num">${rub(fact[b])}</td>
@@ -1880,7 +1907,7 @@ function tasksTab(){
   ${sell.map(p=>{const l=num(p.cost)-num(p.value);return `<tr data-coll="positions" data-id="${p.id}" ${p.sold?'style="opacity:.55"':""}><td><input type="checkbox" data-f="sold" ${p.sold?"checked":""} aria-label="Продано"></td><td>${esc(p.name)} <span class="muted">${esc(p.ticker)}</span></td>
   <td class="muted">${esc((state.accounts.find(a=>a.id===p.account)||{}).name||"—")}</td><td class="num">${num(p.cost)?rub(num(p.cost)):"—"}</td><td class="num">${num(p.value)?rub(num(p.value)):"—"}</td>
   <td class="num ${l>0?"down":""}">${num(p.cost)?rub(l):'<span class="muted">внесите «Вложено»</span>'}</td><td class="num">${l>0?rub(l*rate):"—"}</td></tr>`}).join("")}
-  </tbody></table></div>`:`<div class="empty">Поставьте решение «Продать» бумагам во вкладке «Бумаги» — они появятся здесь.</div>`}
+  </tbody></table></div>`:`<div class="empty">Поставьте решение «Продать» бумагам в разделе «Бумаги» на вкладке «Счета» — они появятся здесь.</div>`}
   <p class="note">Ставка НДФЛ ${state.settings.taxRate}% (поменять: <input id="t-rate" type="number" step="1" value="${num(state.settings.taxRate)}" style="width:60px">%). Убыток зачитывается против прибыли того же года; перенос на будущие годы — через 3-НДФЛ до 30 апреля.</p></div>
   <div class="panel"><h2>Квалифицированный инвестор через оборот <span class="seg" role="group" aria-label="Год">${[qualYear-1,qualYear,qualYear+1].map(y=>`<button data-qy="${y}" aria-pressed="${y===qualYear}">${y}</button>`).join("")}</span></h2>
   <div class="tablewrap"><table><thead><tr><th>Квартал</th><th>Месяц</th><th class="num">Оборот, ₽</th><th class="num">Сделок</th><th>Статус квартала</th></tr></thead><tbody>
@@ -1905,7 +1932,7 @@ function bindNew(){
   sv("a-key","keyRate");
   const nr=document.getElementById("a-noreit"); if(nr) nr.addEventListener("change",()=>{saveSettings({advNoReit:nr.checked});render()});
   const uc=document.getElementById("a-usecash"); if(uc) uc.addEventListener("change",()=>{saveSettings({advUseCash:uc.checked});render()});
-  main.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>{patch("positions",b.dataset.adv,{verdict:b.dataset.v});toast(`Решение «${VERDICT[b.dataset.v]}» поставлено во вкладке «Бумаги»`)});
+  main.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>{patch("positions",b.dataset.adv,{verdict:b.dataset.v});toast(`Решение «${VERDICT[b.dataset.v]}» поставлено в разделе «Бумаги»`)});
   sv("i-goal","goalIncome");sv("i-g","divGrowth");sv("i-c","contribution");sv("i-idx","indexation");sv("i-y","newYield");sv("i-re","reinvest",false);sv("t-rate","taxRate");
   main.querySelectorAll("[data-hz]").forEach(b=>b.onclick=()=>{saveSettings({horizon:+b.dataset.hz});render()});
   main.querySelectorAll("[data-qy]").forEach(b=>b.onclick=()=>{qualYear=+b.dataset.qy;render()});
@@ -1916,7 +1943,7 @@ function bindNew(){
     const skipped=state.positions.filter(p=>p.verdict==="sell"&&!num(p.value)).length;
     for(const p of state.positions.filter(p=>p.verdict==="sell"&&num(p.value)>0&&!state.plans.some(x=>x.pos===p.id))){const m=new Date(d.getFullYear(),d.getMonth()+1+Math.floor(i++/2),1);
       add("plans",{name:p.name,kind:"sell",month:m.getFullYear()+"-"+String(m.getMonth()+1).padStart(2,"0"),amount:num(p.value),cost:num(p.cost),note:"налоговая чистка",off:false,pos:p.id})}
-    toast("Добавлено в план по 2 бумаги в месяц"+(skipped?". Без суммы пропущено: "+skipped+" — заполните «Стоит сейчас» в «Бумагах»":""))};
+    toast("Добавлено в план по 2 бумаги в месяц"+(skipped?". Без суммы пропущено: "+skipped+" — заполните «Стоит сейчас» в разделе «Бумаги»":""))};
   main.querySelectorAll("tr[data-qual] [data-qf]").forEach(el=>el.addEventListener("change",()=>{
     const id=el.closest("tr").dataset.qual; let r=state.qual.find(q=>q.id===id); const f={[el.dataset.qf]:num(el.value)};
     if(r){Object.assign(r,f)}else{r={id,turnover:0,trades:0,...f};state.qual.push(r)}
@@ -2156,7 +2183,7 @@ function periods(){
   return {first:days[0],ytd:yd&&yd<today?periodRet(yd):null,y12:d12?periodRet(d12):null};
 }
 
-// Instrument data for «Анализ бумаг» and «Рекомендации»: bond terms and coupons to maturity, company indicators, analysts' consensus.
+// Instrument data for «Анализ» and «Советы»: bond terms and coupons to maturity, company indicators, analysts' consensus.
 // Kept only in this browser; terms are refreshed weekly, indicators and consensus daily.
 const TINV_AN_KEY="kapital-tinvest-an", AN_TTL={info:7*864e5,fund:864e5,cons:864e5,cpn:3*864e5,err:2*3600*1000};
 let anMem=null;
@@ -2488,7 +2515,7 @@ function connect(){
     <button class="btn primary" type="submit">${on?"Сохранить":"Подключить"}</button>
   </form>
   <p class="note">Где взять токен: <a href="https://www.tbank.ru/invest/settings/api/" target="_blank" rel="noopener">настройки Т-Инвестиций → Токены T-Invest API</a> → «Создать токен» → <b>только для чтения</b>, доступ ко всем счетам. Таким токеном нельзя торговать и выводить деньги. Токен хранится только в этом браузере, не попадает в экспорт и в репозиторий и отправляется только в Т-Инвестиции${tinv.proxy?" через ваш прокси":""}.</p>
-  <p class="note">Что подтягивается: стоимость и свободные деньги каждого счёта и бумаги с количеством, ценой и средней ценой покупки — каждую минуту; купоны и дивиденды, в том числе выплаченные на карту, пополнения и выводы за всё время (для результата и XIRR во вкладке «Портфель») и график будущих купонов и объявленных дивидендов (для прогноза выплат) — раз в 10 минут и кнопкой «Синхронизировать сейчас». Решения «держать / продать» и блоки «штанги» сохраняются. Ручные выплаты, которые дублируют Т-Банк, удаляются одной кнопкой во вкладке «Пассив и дивиденды».</p>
+  <p class="note">Что подтягивается: стоимость и свободные деньги каждого счёта и бумаги с количеством, ценой и средней ценой покупки — каждую минуту; купоны и дивиденды, в том числе выплаченные на карту, пополнения и выводы за всё время (для результата и XIRR во вкладке «Портфель») и график будущих купонов и объявленных дивидендов (для прогноза выплат) — раз в 10 минут и кнопкой «Синхронизировать сейчас». Решения «держать / продать» и блоки «штанги» сохраняются. Ручные выплаты, которые дублируют Т-Банк, удаляются одной кнопкой во вкладке «Пассив».</p>
   <details id="tinv-proxy-help" ${e&&e.kind==="blocked"?"open":""} style="margin-top:12px"><summary style="font-weight:500">Если браузер не пускает запросы: прокси на Cloudflare</summary>
     <ol style="margin:10px 0;padding-left:20px;display:grid;gap:6px;max-width:70ch">
       <li>Зайдите на <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">dash.cloudflare.com</a> (бесплатный аккаунт) → Workers & Pages → Create → Worker. Назовите, например, <code>capital-proxy</code>, нажмите Deploy.</li>
@@ -2501,7 +2528,7 @@ function connect(){
     <button class="btn" type="submit">Сохранить адрес</button></form>
   </details></div>
   <div class="panel"><h2>ВТБ Инвестиции и Инвестпалата <span class="sub">открытого API для частных клиентов нет</span></h2>
-  <p class="note" style="margin-top:0">Обновляйте их из файла: кнопка «Портфель из файла» вверху принимает таблицу бумаг в CSV или Excel (колонки «Название», «Тикер», «Количество» и «Цена» или «Стоимость»). Сайт обновит бумаги в выбранном счёте, поставит сумму счёта по итогу файла и отметит проданными бумаги, которых в файле больше нет. Свободные деньги на счёте поправьте во вкладке «Счета». Во вкладках «Портфель» и «Анализ бумаг» каждый портфель можно смотреть отдельно.</p></div>`;
+  <p class="note" style="margin-top:0">Обновляйте их из файла: кнопка «Портфель из файла» вверху принимает таблицу бумаг в CSV или Excel (колонки «Название», «Тикер», «Количество» и «Цена» или «Стоимость»). Сайт обновит бумаги в выбранном счёте, поставит сумму счёта по итогу файла и отметит проданными бумаги, которых в файле больше нет. Свободные деньги на счёте поправьте во вкладке «Счета». Во вкладках «Портфель» и «Анализ» каждый портфель можно смотреть отдельно.</p></div>`;
 }
 function renderConnLive(){const el=document.getElementById("tinv-sync");if(el){el.disabled=tinvBusy;el.textContent=tinvBusy?"Обновляю…":"Синхронизировать сейчас"}}
 function bindConnect(){
@@ -2728,50 +2755,131 @@ async function handlePayoutsFile(file){
   }catch(e){toast("Не удалось прочитать файл выплат.")}
 }
 
-// ----- Calculator -----
-function openCalc(){
-  const t=totals(),s=state.settings;
-  openModal(`<h2>Калькулятор сложного процента</h2>
-  <p class="muted">Старт — текущая база цели: ${mln(t.goalBase)}. Считаем сложный процент с ежемесячным пополнением и показываем, когда достигаются все этапы до 40 млн.</p>
-  <div class="scen">
-    <label class="f">Стартовая сумма, ₽<input id="c-start" type="number" step="10000" value="${Math.round(t.goalBase)}"></label>
-    <label class="f">Пополнение в месяц, ₽<input id="c-contrib" type="number" step="5000" value="${s.contribution}"></label>
-    <label class="f">Ставка, % годовых<input id="c-rate" type="number" step="0.5" value="${s.rate}"></label>
-    <label class="f">Срок для сравнения, лет<input id="c-years" type="number" step="1" min="1" max="50" value="10"></label>
-  </div>
-  <div id="c-kpis" class="grid kpis" style="margin:12px 0"></div>
-  <div id="c-chart"></div>
-  <div id="c-goals"></div>
-  <div class="toolbar"><button class="btn" id="c-save">Применить пополнение и ставку к прогнозу</button><button class="btn" id="c-close">Закрыть</button></div>`);
-  const gv=id=>num(document.getElementById(id).value);
-  const upd=()=>{
-    const P=gv("c-start"),M=gv("c-contrib"),R=gv("c-rate")/100,T=Math.max(1,gv("c-years")||10);
-    const n=T*12,i=R/12,g=Math.pow(1+i,n);
-    const fvC=i?P*g+M*(g-1)/i:P+M*n;
-    const C=M*n,fvS=P*(1+R*T)+C*(1+R*T/2);
-    const invested=P+C;
-    document.getElementById("c-kpis").innerHTML=`
-      <div class="panel kpi"><small>Через ${T} лет · сложный %</small><div class="v">${mln(fvC)}</div><div class="n">прибыль ${mln(fvC-invested)} · вложено ${mln(invested)}</div></div>
-      <div class="panel kpi"><small>Через ${T} лет · простой %</small><div class="v">${mln(fvS)}</div><div class="n">прибыль ${mln(fvS-invested)}</div></div>
-      <div class="panel kpi"><small>Эффект реинвеста</small><div class="v up">+${mln(fvC-fvS)}</div><div class="n">насколько сложный % обгоняет простой</div></div>`;
-    let L=P;const hit={},pts=[{m:0,v:P}];
-    for(let m=1;m<=240;m++){L=L*(1+i)+M;if(m%12===0)pts.push({m,v:L});
-      for(const tg of LADDER)if(hit[tg]==null&&L>=tg)hit[tg]=m;
-      if(LADDER.every(tg=>hit[tg]!=null)&&m>=36)break}
-    const ahead=LADDER.filter(v=>v>P);
-    document.getElementById("c-chart").innerHTML=ahead.length?projChart(pts,ahead.map(v=>({n:(v/1e6)+" млн",v}))):`<p class="note">Все этапы уже пройдены — стартовая сумма выше 40 млн.</p>`;
-    const d=m=>{const x=new Date();x.setMonth(x.getMonth()+m);return x.toLocaleDateString("ru-RU",{month:"long",year:"numeric"})};
-    document.getElementById("c-goals").innerHTML=`<div class="tablewrap"><table><thead><tr><th>Этап</th><th class="num">Сумма</th><th>Достижение</th><th class="num">Срок от старта</th></tr></thead><tbody>
-    ${LADDER.map(v=>{const m=hit[v];return `<tr><td>${v/1e6} млн</td><td class="num">${mln(v)}</td>
-      <td>${m?d(m):'<span class="muted">дальше 20 лет</span>'}</td><td class="num">${m?monthsLabel(m):"—"}</td></tr>`}).join("")}
-    </tbody></table></div>
-    <p class="note">Сложный процент: капитал растёт ежемесячно, пополнение добавляется в конце каждого месяца. Простой процент — для сравнения: процент начисляется только на первоначальную сумму и взносы без реинвеста. Цели считаются от стартовой суммы целиком (все этапы — по ликвидной базе).</p>`;
-  };
-  ["c-start","c-contrib","c-rate","c-years"].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",upd)});
-  document.getElementById("c-close").onclick=closeModal;
-  document.getElementById("c-save").onclick=()=>{saveSettings({contribution:gv("c-contrib"),rate:gv("c-rate")});closeModal();toast("Настройки прогноза на «Обзоре» обновлены.")};
-  upd();
+// ----- Capital calculator (like the «Цель» calculator of renta.life) -----
+// Start, term, yield, top-ups and how often, reinvesting and how often, tax on each year's income, inflation, indexation of top-ups.
+// Until you type your own, the start is the goal base from «Обзор», the top-up and the yield come from its forecast.
+const CALC_DEFAULT={start:null,years:10,rate:null,contrib:null,cEvery:1,reinv:true,rEvery:1,taxOn:true,tax:null,infl:9,idx:0};
+let calcIn={...CALC_DEFAULT};
+const CALC_EVERY=[[1,"каждый месяц"],[3,"раз в квартал"],[6,"раз в полгода"],[12,"раз в год"],[0,"не пополняю"]];
+const CALC_REINV=[[1,"раз в месяц"],[3,"раз в квартал"],[6,"раз в полгода"],[12,"раз в год"]];
+const yWord=n=>{const a=n%10,b=n%100;return n+" "+(a===1&&b!==11?"год":a>=2&&a<=4&&(b<12||b>14)?"года":"лет")};
+const pct2=x=>x==null||!isFinite(x)?"—":(x*100).toLocaleString("ru-RU",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+const pct1=x=>x.toLocaleString("ru-RU",{maximumFractionDigits:1})+"%";
+function calcVals(){const t=totals(),s=state.settings,I=calcIn;
+  return {start:Math.max(0,I.start??Math.round(t.goalBase||0)),years:Math.min(50,Math.max(1,Math.round(I.years||10))),rate:I.rate??num(s.rate),
+    contrib:Math.max(0,I.contrib??num(s.contribution)),cEvery:I.cEvery,reinv:I.reinv,rEvery:I.rEvery,taxOn:I.taxOn,
+    tax:Math.min(100,Math.max(0,I.tax??(num(s.taxRate)||13))),infl:I.infl,idx:I.idx}}
+// Month by month: income on the capital is counted every month and added to it every «rEvery» months (or paid out when not reinvesting);
+// a top-up comes at the end of its period and grows by the indexation each year; tax on the year's income is taken at the year's end.
+// Checked against renta.life's calculator on the same inputs: every figure matches to the rouble.
+function calcRun(v,months){
+  const r=v.rate/100,idx=v.idx/100,tx=v.taxOn?v.tax/100:0,rows=[{y:0,cap:v.start,inv:v.start}],hit={};
+  let bal=v.start,acc=0,put=0,gross=0,tax=0,paid=0,yInc=0;
+  for(let m=1;m<=months;m++){
+    const i=bal*r/12; yInc+=i;
+    if(v.reinv){acc+=i;if(m%v.rEvery===0){bal+=acc;acc=0}} else paid+=i;
+    if(v.cEvery&&m%v.cEvery===0){const c=v.contrib*Math.pow(1+idx,Math.floor((m-1)/12));bal+=c;put+=c}
+    if(m%12===0){const t=Math.max(0,yInc)*tx;tax+=t;gross+=yInc;if(v.reinv)bal-=t;else paid-=t;yInc=0;
+      rows.push({y:m/12,cap:bal,inv:v.start+put})}
+    for(const g of LADDER) if(hit[g]==null&&g>v.start&&bal+acc>=g) hit[g]=m;
+  }
+  return {rows,hit,bal,put,gross,tax,paid};
 }
+const calcPlan=v=>({c:v.cEvery?Math.round(v.contrib/v.cEvery):0,r:Math.round(v.rate*(1-(v.taxOn?v.tax/100:0))*10)/10});
+function calcChart(rows){
+  const W=(window.innerWidth||1000)<560?360:640,H=W<640?200:220,pl=W<640?50:58,pr=14,pt=14,pb=28,N=rows[rows.length-1].y,maxV=Math.max(1,...rows.map(r=>Math.max(r.cap,r.inv)))*1.06;
+  const x=y=>pl+(W-pl-pr)*y/N, Y=v=>pt+(H-pt-pb)*(1-Math.max(0,v)/maxV);
+  const raw=maxV/4,p10=Math.pow(10,Math.floor(Math.log10(raw))),step=[1,2,2.5,5,10].map(q=>q*p10).find(q=>q>=raw);
+  const lab=v=>v>=1e6?(v/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн":k(v);
+  let g="";for(let v=0;v<=maxV;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/><text x="${pl-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end">${lab(v)}</text>`;
+  const every=Math.max(1,Math.ceil(N/(W<640?5:8))),ticks=[];for(let y=0;y<=N;y+=every)ticks.push(y);if(ticks[ticks.length-1]!==N){if(N-ticks[ticks.length-1]<every/2)ticks.pop();ticks.push(N)}
+  const xt=ticks.map(y=>`<text x="${x(y).toFixed(1)}" y="${H-8}" text-anchor="${y===0?"start":y===N?"end":"middle"}">${y===0?"старт":y===N?yWord(N):y}</text>`).join("");
+  const path=key=>rows.map((r,i)=>(i?"L":"M")+x(r.y).toFixed(1)+" "+Y(r[key]).toFixed(1)).join(" ");
+  const slot=(W-pl-pr)/Math.max(1,N);
+  const hov=rows.map(r=>`<g><title>${r.y?`${yWord(r.y)} от старта: капитал ${rub(r.cap)}, вложено ${rub(r.inv)}`:`Старт: ${rub(r.cap)}`}</title><rect x="${Math.max(pl,x(r.y)-slot/2).toFixed(1)}" y="${pt}" width="${(r.y===0||r.y===N?slot/2:slot).toFixed(1)}" height="${H-pt-pb}" fill="transparent"/></g>`).join("");
+  const L=rows[rows.length-1];
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:${W<640?0:420}px;max-width:860px;display:block;margin-top:8px" role="img" aria-label="Капитал и вложенные деньги по годам">${g}${xt}
+    <path d="${path("cap")} L${x(N).toFixed(1)} ${Y(0).toFixed(1)} L${x(0).toFixed(1)} ${Y(0).toFixed(1)} Z" fill="var(--accent-soft)"/>
+    <path d="${path("inv")}" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2" stroke-dasharray="5 4"/>
+    <path d="${path("cap")}" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="${x(N).toFixed(1)}" cy="${Y(L.cap).toFixed(1)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>${hov}</svg></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>капитал ${rub(L.cap)}</span><span><i class="ln"></i>вложено ${rub(L.inv)}</span><span class="muted">наведите на график: суммы по годам</span></div>`;
+}
+function calcOut(v){
+  const R=calcRun(v,v.years*12),N=v.years,defl=Math.pow(1+v.infl/100,N),net=R.gross-R.tax,inv=v.start+R.put,total=R.bal;
+  const k12=v.reinv?12/v.rEvery:0,eff=v.reinv?Math.pow(1+v.rate/100/k12,k12)-1:v.rate/100,taxed=v.taxOn&&v.tax>0,P=calcPlan(v);
+  const H=calcRun(v,600).hit,ahead=LADDER.filter(g=>g>v.start),G=40e6;
+  const goal=v.start>=G?"40 млн уже есть на старте.":H[G]!=null?`40 млн по этому сценарию: ${dateLabel(H[G])}, через ${durLabel(H[G])}.`:"40 млн по этому сценарию не набирается и за 50 лет.";
+  return `<small class="muted">Через ${yWord(N)}</small>
+  <div class="calc-big">${rub(total)}</div>
+  <p class="calc-sub">в сегодняшних деньгах ${rub(total/defl)} · вложено ${rub(inv)}${R.put?` (из них пополнений ${rub(R.put)})`:""}${taxed?` · удержано налога ${rub(R.tax)}`:""}${v.reinv?"":` · выплачено на руки ${rub(R.paid)}`}</p>
+  <button class="btn primary" type="button" id="cl-apply">Сделать это моим планом →</button>
+  <p class="note" style="margin-top:6px">В прогноз на «Обзоре» попадут пополнение ${rub(P.c)} в месяц и доходность ${pct1(P.r)}${taxed?` (${pct1(v.rate)} за вычетом налога ${pct1(v.tax)})`:""}. Стартовый капитал там остаётся вашим.</p>
+  <div class="rows">
+    <div class="row"><span>Стартовый капитал</span><b>${rub(v.start)}</b></div>
+    <div class="row"><span>Пополнения</span><b>${rub(R.put)}</b></div>
+    <div class="row"><span>${v.reinv?"Расчётный доход":"Доход, выплаченный на руки"}${taxed?", после налога":""}</span><b>${rub(net)}</b></div>
+  </div>
+  <h3>Как будет расти капитал</h3>
+  ${calcChart(R.rows)}
+  <h3>Показатели расчёта</h3>
+  <div class="calc-stats">
+    <div><small>Прирост к стартовому</small><b>${pct2(v.start?(total+(v.reinv?0:R.paid)-v.start)/v.start:null)}</b><span>к вложенному с пополнениями ${pct2(inv?net/inv:null)}</span></div>
+    <div><small>Эффективная ставка</small><b>${pct2(eff)}</b><span>${v.reinv?"с учётом капитализации":"без реинвестирования"}</span></div>
+    <div><small>Доход до налога</small><b>${rub(R.gross)}</b><span>чистыми ${rub(net)}</span></div>
+    <div><small>Доход в сегодняшних деньгах</small><b>${rub(net/defl)}</b><span>чистый, с поправкой на инфляцию</span></div>
+  </div>
+  <p class="note">${goal}</p>
+  ${ahead.length>1?`<details id="cl-stages"><summary class="muted" style="font-size:13px">Все этапы до 40 млн</summary><div class="tablewrap"><table><thead><tr><th>Этап</th><th>Когда</th><th class="num">Через</th></tr></thead><tbody>
+    ${ahead.map(g=>`<tr><td>${g/1e6} млн</td><td>${H[g]!=null?dateLabel(H[g]):'<span class="muted">дальше 50 лет</span>'}</td><td class="num">${H[g]!=null?durLabel(H[g]):"—"}</td></tr>`).join("")}</tbody></table></div></details>`:""}
+  <p class="note">Сценарий при заданной доходности. Доход начисляется каждый месяц и ${v.reinv?"прибавляется к капиталу "+CALC_REINV.find(o=>o[0]===v.rEvery)[1]:"выплачивается на руки"}; пополнение приходит в конце периода${v.idx?` и каждый год растёт на ${pct1(v.idx)}`:""}. ${taxed?`Налог ${pct1(v.tax)} считается с дохода за год и вычитается в конце года.`:"Налог не учитывается."} Инфляция ${pct1(v.infl)} нужна только для пересчёта в сегодняшние деньги.</p>`;
+}
+function calcHTML(){
+  const v=calcVals(),money=n=>n?nf.format(Math.round(n)):"";
+  const sel=(id,opts,cur,off)=>`<select id="${id}"${off?" disabled":""}>${opts.map(([n,l])=>`<option value="${n}"${n===cur?" selected":""}>${l}</option>`).join("")}</select>`;
+  return `<div class="panel" id="calc"><h2>Калькулятор капитала <span class="sub">сценарий «что будет, если»: ваши цифры на сайте не меняются, пока не нажмёте «Сделать это моим планом»</span></h2>
+  <div class="calc">
+    <div>
+      <div class="fields">
+        <label class="f">Стартовый капитал, ₽<input id="cl-start" class="xmoney" inputmode="numeric" autocomplete="off" value="${money(v.start)}" placeholder="0"></label>
+        <label class="f">Срок, лет<input id="cl-years" type="number" min="1" max="50" step="1" value="${v.years}"></label>
+        <label class="f">Доходность, % годовых<input id="cl-rate" type="number" step="0.5" value="${v.rate}"></label>
+        <label class="f">Пополнение, ₽<input id="cl-contrib" class="xmoney" inputmode="numeric" autocomplete="off" value="${money(v.contrib)}" placeholder="0"></label>
+        <label class="f wide">Как часто пополняете${sel("cl-cevery",CALC_EVERY,v.cEvery)}</label>
+        <label class="chk wide"><input type="checkbox" id="cl-reinv"${v.reinv?" checked":""}>Реинвестировать доход (сложный процент)</label>
+        <label class="f wide">Как часто реинвестировать${sel("cl-revery",CALC_REINV,v.rEvery,!v.reinv)}</label>
+      </div>
+      <details id="cl-more" class="calc-more"><summary>Дополнительно: налог, инфляция, индексация</summary>
+        <div class="fields">
+          <label class="chk wide"><input type="checkbox" id="cl-taxon"${v.taxOn?" checked":""}>Налог с дохода по итогам каждого года</label>
+          <label class="f">Налог, %<input id="cl-tax" type="number" min="0" max="100" step="1" value="${v.tax}"${v.taxOn?"":" disabled"}></label>
+          <label class="f">Инфляция, % в год<input id="cl-infl" type="number" step="0.5" value="${v.infl}"></label>
+          <label class="f wide">Индексация пополнений, % в год<input id="cl-idx" type="number" step="1" value="${v.idx}"><span class="hint">на сколько пополнение вырастает каждый год</span></label>
+        </div>
+      </details>
+      <div class="toolbar"><button class="btn" type="button" id="cl-reset">Подставить мои цифры</button></div>
+      <p class="note">Сначала здесь стоят ваши цифры: стартовый капитал как база цели на «Обзоре», пополнение и доходность из его прогноза.</p>
+    </div>
+    <div id="cl-out">${calcOut(v)}</div>
+  </div></div>`;
+}
+function bindCalc(){
+  const $=id=>document.getElementById(id); if(!$("calc")) return;
+  const out=()=>{const st=$("cl-stages"),open=!!(st&&st.open);$("cl-out").innerHTML=calcOut(calcVals());if(open&&$("cl-stages"))$("cl-stages").open=true;bindCalcOut()};
+  // an emptied field counts as 0, except the term, which falls back to 10 years
+  for(const [id,key] of [["cl-start","start"],["cl-years","years"],["cl-rate","rate"],["cl-contrib","contrib"],["cl-tax","tax"],["cl-infl","infl"],["cl-idx","idx"]]){
+    const el=$(id); el.addEventListener("input",()=>{const raw=el.value.trim();calcIn[key]=raw===""?(key==="years"?null:0):num(raw);out()})}
+  for(const id of ["cl-start","cl-contrib"]){const el=$(id);el.addEventListener("focus",()=>el.select());
+    el.addEventListener("change",()=>{const v=Math.max(0,Math.round(num(el.value)));el.value=v?nf.format(v):""})}
+  $("cl-cevery").onchange=e=>{calcIn.cEvery=+e.target.value;out()};
+  $("cl-revery").onchange=e=>{calcIn.rEvery=+e.target.value;out()};
+  $("cl-reinv").onchange=e=>{calcIn.reinv=e.target.checked;$("cl-revery").disabled=!calcIn.reinv;out()};
+  $("cl-taxon").onchange=e=>{calcIn.taxOn=e.target.checked;$("cl-tax").disabled=!calcIn.taxOn;out()};
+  $("cl-reset").onclick=()=>{calcIn={...CALC_DEFAULT};render()};
+  bindCalcOut();
+}
+function bindCalcOut(){const b=document.getElementById("cl-apply");if(!b)return;
+  b.onclick=()=>{const p=calcPlan(calcVals());saveSettings({contribution:p.c,rate:p.r});
+    toast(`В прогнозе на «Обзоре» теперь пополнение ${rub(p.c)} в месяц и доходность ${pct1(p.r)}`)}}
 
 // ---------- events ----------
 function bind(){
@@ -2807,7 +2915,7 @@ function bind(){
     const ex=state.months.find(m=>m.id===id);
     if(ex){Object.assign(ex,body); if(db) db.collection("months").doc(id).set({...body,note:ex.note||""}).catch(err); else saveLocal(); render()}
     else{state.months.push({id,...body}); if(db) db.collection("months").doc(id).set(body).catch(err); else saveLocal(); render()}});
-  bindNew(); bindConnect(); bindExpenses();
+  bindNew(); bindConnect(); bindExpenses(); bindCalc();
   main.querySelectorAll("[data-pc]").forEach(b=>b.onclick=()=>{pfClass=b.dataset.pc;render()});
   main.querySelectorAll("[data-pfacc]").forEach(b=>b.onclick=e=>{e.preventDefault();pfAcc=b.dataset.pfacc;try{localStorage.setItem("kapital-pf-acc",pfAcc)}catch(x){}
     pfClass="all";render();if(b.tagName==="A")window.scrollTo({top:0})});
@@ -2835,7 +2943,7 @@ function bind(){
 document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)setTab(b.dataset.tab)});
 document.getElementById("h-sync").onclick=()=>setTab("connect");
 main.addEventListener("click",e=>{const b=e.target.closest("[data-goto]");if(b){e.preventDefault();setTab(b.dataset.goto)}});
-try{const t=localStorage.getItem("kapital-tab");if(t){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
+try{let t=localStorage.getItem("kapital-tab");t=TAB_ALIAS[t]||t;if(t&&document.querySelector(`#tabs [data-tab="${t}"]`)){tab=t;document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t))}}catch(e){}
 // On a phone the strip is one row you swipe: keep the open tab in view and fade the edge that has more tabs past it
 function tabsEdges(){const n=document.getElementById("tabs"),max=n.scrollWidth-n.clientWidth;
   n.classList.toggle("more-l",max>2&&n.scrollLeft>2); n.classList.toggle("more-r",max>2&&n.scrollLeft<max-2)}
@@ -2856,7 +2964,7 @@ document.getElementById("btn-pay").onclick=()=>document.getElementById("f-pay").
 document.getElementById("f-pay").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handlePayoutsFile(f)};
 document.getElementById("f-exp").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)handleExpensesFile(f)};
 main.addEventListener("click",e=>{const b=e.target.closest("[data-xload]");if(b){e.preventDefault();document.getElementById("f-exp").click()}});
-document.getElementById("btn-calc").onclick=openCalc;
+document.getElementById("btn-calc").onclick=()=>setTab("plans");
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 
 // ---------- boot ----------
